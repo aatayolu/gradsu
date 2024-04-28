@@ -11,7 +11,7 @@ ADD . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Set environment variable for MongoDB connection string
-# ENV MONGODB_CONNECTION_STRING="mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/"
+ENV MONGODB_CONNECTION_STRING="mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/"
 
 # Make port 8080 available to the world outside this container
 EXPOSE 8080

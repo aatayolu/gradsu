@@ -132,4 +132,4 @@ cython_debug/
 # .dockerignore
 
 # Ignore the .env file
-.env
+# .env

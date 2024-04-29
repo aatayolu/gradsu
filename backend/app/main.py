@@ -1,5 +1,6 @@
-from fastapi import FastAPI
-from motor.motor_asyncio import AsyncIOMotorClient
+import os
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
@@ -8,12 +9,13 @@ app = FastAPI()
 def read_root():
     return {"Sorrow": "Pain"}
 
+
 @app.get("/check_connection")
-async def check_connection():
-    client = AsyncIOMotorClient("mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/")
+def check_connection():
     try:
-        # The ismaster command is cheap and does not require auth.
-        await client.admin.command('ismaster')
+        client = MongoClient(os.getenv("MONGODB_URL"))
+        # Try to list databases, which will check the connection
+        client.list_database_names()
         return {"status": "MongoDB connection is successful"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PyMongoError as e:
+        return {"status": "MongoDB connection failed", "detail": str(e)}

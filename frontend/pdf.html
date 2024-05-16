@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload PDF</title>
+    <link rel="stylesheet" href="pdf.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome!</h1>
+        <div class="upload-container">
+            <label for="pdf-upload" class="upload-btn">Upload Your Transcript as PDF</label>
+            <input type="file" id="pdf-upload" accept=".pdf">
+            <div id="pdf-info" class="pdf-info"></div> <!-- Added div for PDF information -->
+            <button id="continue-btn" class="continue-btn" onclick="continueToDashboard()">Continue</button>
+        </div>
+    </div>
+    <script src="pdf.js"></script> <!-- JavaScript file for handling file input -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+
+</body>
+</html>

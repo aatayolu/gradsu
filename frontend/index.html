@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - myWebsite</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="container">
+        <form id="loginForm" class="login-form">
+            <h2>Login to SuGrad</h2>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <button type="button" onclick="checkLogin()">Login</button>
+            </div>
+            <div class="links">
+                <span id="registerLink" onclick="goToRegister()">Register</span>
+                <span class="separator">|</span>
+                <span id="forgotPasswordLink">Forgot Password?</span>
+            </div>
+        </form>
+    </div>
+    <script src="loginScript.js"></script>
+</body>
+</html>

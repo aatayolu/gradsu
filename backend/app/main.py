@@ -8,6 +8,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.security import HTTPBearer
 from .config.database import database
+from .config.database import client
 from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body
@@ -51,6 +52,19 @@ app.add_middleware(
 # @app.get("/items/")
 # async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
 #     return {"token": token}
+
+from pymongo.errors import ServerSelectionTimeoutError
+
+app = FastAPI()
+
+@app.get("/check_mongo_connection")
+async def check_mongo_connection():
+    try:
+        # The ismaster command is cheap and does not require auth.
+        client.admin.command('ismaster')
+        return {"status": "MongoDB connection is active"}
+    except ServerSelectionTimeoutError:
+        raise HTTPException(status_code=500, detail="MongoDB connection failed")
 
 @app.post("/user/login", tags=["User"])
 async def login_for_access_token(user_data: UserLogin):

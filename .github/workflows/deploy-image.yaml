@@ -39,18 +39,18 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
-            context: .
-            push: true
-            tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Deploy to Server
         uses: appleboy/ssh-action@master
         with:
-                host: ${{ secrets.SERVER_IP }}
-                username: ${{ secrets.SERVER_USERNAME }}
-                key: ${{ secrets.SERVER_SSH_KEY }}
-                script: |
-                    docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-                    docker stop my-app || true
-                    docker rm my-app || true
-                    docker run -d --name my-app -p 80:80 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker stop my-app || true
+            docker rm my-app || true
+            docker run -d --name my-app -p 80:80 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest

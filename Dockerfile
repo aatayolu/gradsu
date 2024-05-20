@@ -1,5 +1,5 @@
 # Use a slim Python runtime as a parent image
-FROM python:3.8-slim-buster
+FROM python:3.9-slim-buster
 
 # Set environment variables
 ENV MONGODB_URL=mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/

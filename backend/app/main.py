@@ -1,24 +1,24 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models.model import Course
-from models.model import ScienceCourse
-from models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse
+from .models.model import Course
+from .models.model import ScienceCourse
+from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse
 from typing import List  # Import List from the typing module
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.security import HTTPBearer
-from config.database import database
+from .config.database import database
 from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body
-from config.database import user_collection
+from .config.database import user_collection
 from typing import Annotated
 from fastapi.security import HTTPAuthorizationCredentials
 app = FastAPI()
 
 oauth2_scheme = HTTPBearer()
 
-from routers.router import(
+from .routers.router import(
 
     fetch_recommend_courses,
     add_prev_recoms,

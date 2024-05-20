@@ -1,15 +1,15 @@
-from models.model import Course
-from models.model import CourseRecommendation
-from models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse
+from ..models.model import Course
+from ..models.model import CourseRecommendation
+from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse
 from typing import List  # Import List from the typing module
 from fastapi import APIRouter
-from config.database import cs_2018_fall
-from config.database import user_collection, get_program_collection
+from ..config.database import cs_2018_fall
+from ..config.database import user_collection, get_program_collection
 from bson import ObjectId #this is what mongodb uses to be able to identify the id that it creates itself
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer, HTTPAuthorizationCredentials, HTTPBearer
-from config.database import database
+from ..config.database import database
 from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body

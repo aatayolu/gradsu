@@ -1,4 +1,5 @@
 from pydantic import BaseModel 
+from pymongo import MongoClient
 from bson import ObjectId
 from typing import List  # Import List from the typing module
 from typing import Optional  # Import Optional from the typing module

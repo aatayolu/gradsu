@@ -1,25 +1,25 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from .models.model import Course
-from .models.model import ScienceCourse
-from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse
+from models.model import Course
+from models.model import ScienceCourse
+from models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom
 from typing import List  # Import List from the typing module
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.security import HTTPBearer
-from .config.database import database
-from .config.database import client
+from config.database import database
 from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body
-from .config.database import user_collection
+from config.database import user_collection
 from typing import Annotated
+
 from fastapi.security import HTTPAuthorizationCredentials
 app = FastAPI()
 
 oauth2_scheme = HTTPBearer()
 
-from .routers.router import(
+from routers.router import(
 
     fetch_recommend_courses,
     add_prev_recoms,
@@ -30,7 +30,9 @@ from .routers.router import(
     update_password,
     add_user_info,
     get_all_user,
-    delete_user
+    delete_user,
+    fetch_recommend_specific_courses,
+
 
     
 )
@@ -52,19 +54,6 @@ app.add_middleware(
 # @app.get("/items/")
 # async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
 #     return {"token": token}
-
-from pymongo.errors import ServerSelectionTimeoutError
-
-app = FastAPI()
-
-@app.get("/check_mongo_connection")
-async def check_mongo_connection():
-    try:
-        # The ismaster command is cheap and does not require auth.
-        client.admin.command('ismaster')
-        return {"status": "MongoDB connection is active"}
-    except ServerSelectionTimeoutError:
-        raise HTTPException(status_code=500, detail="MongoDB connection failed")
 
 @app.post("/user/login", tags=["User"])
 async def login_for_access_token(user_data: UserLogin):
@@ -104,7 +93,7 @@ async def change_password(user_data: ChangePassword, current_user: UserInDB = De
 
 
 @app.post("/user/addInfo", tags=["User"])
-async def add_user_info_route(user_info: UserAddInfo, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+async def add_user_info_route(user_info: UserAddInfo, token: Annotated[str, Depends(oauth2_scheme)]):
     response = await add_user_info(user_info, token)
     if response:
         return response
@@ -113,7 +102,7 @@ async def add_user_info_route(user_info: UserAddInfo, token: HTTPAuthorizationCr
 
 
 @app.post("/recommend/course", tags=["Recommend"])
-async def get_course_recommendation(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+async def get_course_recommendation(token: Annotated[str, Depends(oauth2_scheme)]):
     response = await fetch_recommend_courses(token)
     if response:
         return response
@@ -122,7 +111,7 @@ async def get_course_recommendation(token: HTTPAuthorizationCredentials = Depend
 
 
 @app.post("/course/addRecommended", tags=["Course"]) 
-async def add_course(courses: AddPrevRecoom, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+async def add_course(courses: AddPrevRecoom, token: Annotated[str, Depends(oauth2_scheme)]):
     response = await add_prev_recoms(courses, token)
     if response:
         return response
@@ -144,3 +133,13 @@ async def delete_user_handler(token: HTTPAuthorizationCredentials = Depends(oaut
         return response
     else:
         raise HTTPException(404, "Cannot delete user")
+    
+
+@app.post("/recommend/specificCourse", tags=["Recommend"])
+async def get_specific_course_recommendation(request: SpecificRecom, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    response = await fetch_recommend_specific_courses(request, token)
+    if response:
+        return response
+    else:
+        raise HTTPException(404, "No courses found")
+

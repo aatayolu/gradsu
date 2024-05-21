@@ -4,9 +4,9 @@
 # import motor.motor_asyncio
 #connection between the database.py and MongoDB
 from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 
-
-client = MongoClient('mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/')
+client = AsyncIOMotorClient('mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/')
 database = client.get_database("SuGrad")
 cs_2018_fall = database.get_collection("CS-201801")
 cs_2018_spring = database.get_collection("CS-201802")

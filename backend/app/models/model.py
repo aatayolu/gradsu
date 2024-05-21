@@ -53,6 +53,9 @@ class UserRegistration(BaseModel):
     first_name : str
     last_name : str
 
+    def model_dump(self):
+        return self.dict()
+
 
 
 class Token(BaseModel):

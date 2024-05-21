@@ -1,0 +1,77 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100%;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    background-color: #333;
+    color: #fff;
+    width: 200px;
+    padding: 20px;
+}
+
+.schedule {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.schedule-header {
+    display: grid;
+    grid-template-columns: 120px repeat(5, 1fr); /* Match the columns with the schedule grid */
+    gap: 2px;
+}
+
+.day {
+    text-align: center;
+    font-weight: bold;
+    padding: 10px 0;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-body {
+    display: flex;
+}
+
+.hours {
+    display: flex;
+    flex-direction: column;
+    margin-right: 2px; /* Adjust gap between hours and schedule grid */
+}
+
+.hour {
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 120px; /* Ensure this matches the grid column width */
+    height: 5vh;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+    gap: 2px;
+    flex-grow: 1;
+}
+
+.cell {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 6vh;
+    padding: 5px;
+}
+
+.cell:hover {
+    background-color: #f0f0f0;
+}

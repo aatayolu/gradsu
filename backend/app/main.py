@@ -19,7 +19,7 @@ app = FastAPI()
 
 oauth2_scheme = HTTPBearer()
 
-from routers.router import(
+from .routers.router import(
 
     fetch_recommend_courses,
     add_prev_recoms,

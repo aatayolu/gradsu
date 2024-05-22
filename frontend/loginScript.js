@@ -27,68 +27,130 @@ function showToast(msg) {
     }, 3000);
 }
 
-function checkEmail(email){
-    if (email.indexOf('@') === -1) {
-        return false; // Email does not contain "@"
-    }
-    if (email.length < 6) {
-        return false; // Email is too short
-    }
+async function registerUser(email, password, username) {
+    const requestBody = {
+        username : username,
+        password: password,
+        email: email,
+        first_name: "jane",
+        last_name : "doe"
+    };
 
-    return true;
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*'
+        },
+        body: JSON.stringify(requestBody)
+    };
+
+    console.log('Request Body:', requestBody);
+    console.log('Fetch Options:', fetchOptions);
+
+    try {
+        const response = await fetch('http://95.214.177.119/user/register', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Store the token in session storage
+            sessionStorage.setItem('accessToken', data.access_token);
+            // Redirect to the PDF page on successful login
+            goToLogin();
+        } else {
+            // Handle login failure
+            showToast(data.message || 'Login failed. Please try again.');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
+    }
 }
 
-function registerUser(email, password){
-    //register api call
-    goToLogin();
-}
-
-function checkRegister(){
+function checkRegister() {
     var email = document.getElementById('email').value;
     var password = document.getElementById('password').value;
     var confirmPassword = document.getElementById('passwordNew').value;
+    var username = document.getElementById('username').value;
 
     // Store email, password, and confirmPassword in session storage
     sessionStorage.setItem('registerEmail', email);
     sessionStorage.setItem('registerPassword', password);
     sessionStorage.setItem('confirmPassword', confirmPassword);
+    sessionStorage.setItem('registerUsername', username);
 
-    if(!checkEmail(email)){
-        showToast("Enter a valid email");
-    }
-    else if(password == "" || password.length < 5){
-        showToast("Please enter a valid password");
-    }
-    else if(password == confirmPassword){
-        console.log(password, " ", confirmPassword)
+    
+    if (password == confirmPassword) {
         console.log("trying to register")
-        registerUser(email, password)
-    }
-    else{
-        showToast("Passwords does not match");
+        registerUser(email, password, username)
+    } else {
+        showToast("Passwords do not match");
     }
 }
 
-function loginUser(email, password){
-    //login api call
-    goToDashboard(); //if login is succesfull
+async function loginUser(email, password) {
+    const requestBody = {
+        username: email,
+        password: password
+    };
+
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*'
+        },
+        body: JSON.stringify(requestBody)
+    };
+
+    console.log('Request Body:', requestBody);
+    console.log('Fetch Options:', fetchOptions);
+
+    try {
+        const response = await fetch('http://95.214.177.119/user/login', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Store the token in session storage
+            sessionStorage.setItem('accessToken', data.access_token);
+            // Redirect to the PDF page on successful login
+            goToPdf();
+        } else {
+            // Handle login failure
+            showToast(data.message || 'Login failed. Please try again.');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
+    }
 }
 
-function checkLogin(){
+function checkLogin() {
     var email = document.getElementById('email').value;
     var password = document.getElementById('password').value;
 
     sessionStorage.setItem('registerEmail', email);
     sessionStorage.setItem('registerPassword', password);
-
-    if(!checkEmail(email)){
-        showToast("Enter a valid email");
-    }
-    else if(password == "" || password.length < 5){
-        showToast("Please enter a valid password");
-    }
-    else{
-        console.log("trying to login")
-        goToPdf();
-    }
+ 
+    console.log("trying to login");
+    loginUser(email, password); // Call the loginUser function with email and password
+    
 }

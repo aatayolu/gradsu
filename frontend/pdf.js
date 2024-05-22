@@ -1,3 +1,6 @@
+
+var access_token = sessionStorage.getItem("accessToken");
+
 document.getElementById('pdf-upload').addEventListener('change', function() {
     var file = this.files[0]; // Get the selected file
     var pdfInfo = document.getElementById('pdf-info');
@@ -80,6 +83,7 @@ function extractTextFromPDF(pdfContent) {
 
             // Log the extracted text
             console.log('Extracted text:', text);
+            extractInfo(text);
             
             // Store the extracted text or perform other operations as needed
             sessionStorage.setItem('pdfTextContent', text);
@@ -103,3 +107,65 @@ function continueToDashboard() {
     }
 }
 
+function extractInfo(info){
+
+    const admitRegex = /Admit Semester\s+:\s+(Fall|Spring)\s+(\d{4})-\d{4}/;
+
+    // Match the regular expression against the provided text
+    const match = info.match(admitRegex);
+
+    // If a match is found, adjust the admit year based on the semester
+    if (match && match.length >= 3) {
+        const semester = match[1];
+        let year = match[2];
+        
+        // Adjust the year based on the semester
+        if (semester === 'Fall') {
+            year += '01'; // If fall, add '01' to the end of the year
+        } else if (semester === 'Spring') {
+            year += '02'; // If spring, add '02' to the end of the year
+        }
+        console.log(year);
+
+        const programRegex = /Program\(s\)\s*:\s*(.*?)\s*Admit Semester/;
+        const match2 = info.match(programRegex);
+
+        if (match2 && match2.length >= 2) {
+            let program = match2[1].trim();
+            console.log(program);
+
+            const lowercaseProgram = program.toLowerCase();
+
+            // Define a mapping of majors to abbreviations
+            const programAbbreviations = {
+                "computer science": "cs",
+                "biology": "bio",
+                "economics": "econ",
+                "electric electronics": "ee",
+                "management": "man",
+                "material": "mat",
+                "psychology": "psy"
+                // Add more majors and their abbreviations as needed
+            };
+
+            var shortProgram = "Program not Found";
+            // Split the program name into words
+            // Iterate through the program abbreviations mapping
+            console.log(lowercaseProgram);
+            for (const [major, abbreviation] of Object.entries(programAbbreviations)) {
+                // Check if any word in the program name matches the lowercase major
+                console.log(lowercaseProgram.includes(major));
+                if (lowercaseProgram.includes(major)) {
+                    console.log("sex2");
+                    shortProgram = abbreviation; // Return the abbreviation if found
+                    break; // Exit the loop once a match is found
+                }
+            }
+            console.log(shortProgram);
+        } else {
+            console.log("Program not found");
+        }
+    } else {
+        console.log("Admit year not found");
+    }
+}

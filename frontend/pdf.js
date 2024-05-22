@@ -138,10 +138,10 @@ function extractInfo(info){
 
             // Define a mapping of majors to abbreviations
             const programAbbreviations = {
-                "computer science": "cs",
+                "computer": "cs",
                 "biology": "bio",
                 "economics": "econ",
-                "electric electronics": "ee",
+                "electric": "ee",
                 "management": "man",
                 "material": "mat",
                 "psychology": "psy"
@@ -154,9 +154,7 @@ function extractInfo(info){
             console.log(lowercaseProgram);
             for (const [major, abbreviation] of Object.entries(programAbbreviations)) {
                 // Check if any word in the program name matches the lowercase major
-                console.log(lowercaseProgram.includes(major));
                 if (lowercaseProgram.includes(major)) {
-                    console.log("sex2");
                     shortProgram = abbreviation; // Return the abbreviation if found
                     break; // Exit the loop once a match is found
                 }

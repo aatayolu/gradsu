@@ -15,7 +15,17 @@ from fastapi import Body
 from .config.database import user_collection
 from typing import Annotated
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 oauth2_scheme = HTTPBearer()
 

@@ -139,3 +139,13 @@ class UserGetAllResponse(BaseModel):
     pdf_uploaded: bool
     admission_year: int
     recommendations: List[dict]
+
+
+class SpecificRecom(BaseModel):
+    selected_courses: List[str]
+    core : int
+    area : int
+    free : int
+    required : int
+    basic_science : int
+    university : int

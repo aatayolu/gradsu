@@ -1,6 +1,6 @@
 from ..models.model import Course
 from ..models.model import CourseRecommendation
-from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse
+from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom
 from typing import List  # Import List from the typing module
 from fastapi import APIRouter
 from ..config.database import cs_2018_fall
@@ -372,7 +372,6 @@ async def add_user_info(user_info: UserAddInfo, token: str):
     else:
         return {"message": "Failed to update user info", "success": False}
 
-
 async def fetch_recommend_courses(token: str):
     try:
         user_info = await get_current_user_details(token)
@@ -413,14 +412,19 @@ async def fetch_recommend_courses(token: str):
                         
             # Function to check if a course is already taken by the user
             def course_already_taken(course_code, course_type):
-                if course_type == "university":
-                    return course_code in user_info.university_courses
+                if course_type == "required":
+                    return course_code in user_info.required_courses
+                elif course_type == "area":
+                    return course_code in user_info.area_courses
+                elif course_type == "core":
+                    return course_code in user_info.core_courses
                 # Add more checks for other course types if needed
             
             # Function to check if user satisfies prerequisites for a course
             async def user_satisfies_prerequisites(course_code, prerequisites):
                 for prerequisite in prerequisites:
-                    if prerequisite not in user_info.core_courses and prerequisite not in user_info.required_courses:
+                    print("PREREQUISITE IS: ", prerequisite)
+                    if prerequisite not in user_info.core_courses and prerequisite not in user_info.required_courses and prerequisite not in user_info.area_courses:
                         return False
                 return True
             
@@ -428,51 +432,69 @@ async def fetch_recommend_courses(token: str):
             async def recommend_courses():
                 recommended_courses = []
                 # Fetch all courses from the university collection
-                university_courses = await program_collection.find({"course_type": "university"}).to_list(length=None)
-                for course in university_courses:
+                required_courses = await program_collection.find({"course_type": "required"}).to_list(length=None)
+                area_courses = await program_collection.find({"course_type": "area"}).to_list(length=None)
+                core_courses = await program_collection.find({"course_type": "core"}).to_list(length=None)
+                #university_courses = await program_collection.find({"course_type": "university"}).to_list(length=None)
+
+                course_types = {"required": required_courses, "area": area_courses, "core": core_courses}
+
+                for course_type, courses in course_types.items():
+                    for course in courses:
+                        print(f"Course: {course}")  # Add this line to debug
+                            # Check if the course is not already taken
                     # Check if the course is not already taken
-                    if not course_already_taken(course["course_code"], course["course_type"]):
-                        # Check if the course is open in the current semester
-                        if course["sections"]:
-                            lecture_found = False
-                            recitation_found = False
-                            for section in course["sections"]:
-                                # Check if the section has times
-                                
-                                if section["times"]:
-                                    schedule = section["times"][0][0]  # Considering only the first time slot
-                                    # Check if the schedule overlaps with any previous recommendations
-                                    overlap = False
-                                    for rec in prev_recommendations:
-                                        for rec_course in rec:
-                                            if check_schedule_overlap(schedule, rec_course[1]):
-                                                overlap = True
+                        if not course_already_taken(course["course_code"], course["course_type"]):
+                            # Check if the course is open in the current semester
+                            if course["sections"]:
+                                lecture_found = False
+                                recitation_found = False
+                                for section in course["sections"]:
+                                    # Check if the section has times
+                                    
+                                    if section["times"]:
+                                        schedule = section["times"][0][0]  # Considering only the first time slot
+                                        # Check if the schedule overlaps with any previous recommendations
+                                        overlap = False
+                                        for rec in prev_recommendations:
+                                            for rec_course in rec:
+                                                if check_schedule_overlap(schedule, rec_course[1]):
+                                                    overlap = True
+                                                    break
+                                            if overlap:
                                                 break
-                                        if overlap:
-                                            break
-                                    if not overlap:
-                                        # Check if the user satisfies prerequisites for the course
-                                        if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
-                                            if section["section"] and section["section"][-1].isdigit():
-                                                # This is a recitation section
-                                                if not recitation_found:
-                                                    section = course["course_code"] + " " + section["section"]
-                                                    recommended_courses.append([section, schedule, "Recitation"])
-                                                    recitation_found = True  # Set recitation found to True after finding a recitation
-                                            else:
-                                                # This is a lecture section
-                                                section_section = section["section"]
-                                                if not any(char.isdigit() for char in section_section):
-                                                    print("LECTURE IS: ", section["section"])
-                                                    if not lecture_found:
-                                                        
-                                                        print("LECTURE IS: ", section["section"])
-                                                        if section["section"] :
-                                                                recommended_courses.append([course["course_code"], schedule, "Required"])
+                                        if not overlap:
+                                            # Check if the user satisfies prerequisites for the course
+                                            if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
+                                                if section["section"] and section["section"][-1].isdigit():
+                                                    if section["section"][-1] == '0':
+                                                        # This is a lecture section
+                                                        section_section = section["section"]
+                                                        if not lecture_found:
+                                                            print("LECTURE IS: ", section["section"])
+                                                            if section["section"]:
+                                                                recommended_courses.append([course["course_code"], schedule, course["course_type"]])
                                                                 lecture_found = True
-                        # else:  # If there are no sections at all, consider the course as a whole
-                        #     if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
-                        #         recommended_courses.append([course["course_code"], "", "Required"])  # No schedule for courses without sections
+
+                                                    else:
+                                                        # This is a recitation section
+                                                        if not recitation_found:
+                                                            section = course["course_code"] + " " + section["section"]
+                                                            recommended_courses.append([section, schedule, "Recitation"])
+                                                            recitation_found = True  # Set recitation found to True after finding a recitation section
+                                                else:
+                                                    # This handles sections without any digits which are also considered lectures
+                                                    section_section = section["section"]
+                                                    if not any(char.isdigit() for char in section_section):
+                                                        print("LECTURE IS: ", section["section"])
+                                                        if not lecture_found:
+                                                            print("LECTURE IS: ", section["section"])
+                                                            if section["section"]:
+                                                                recommended_courses.append([course["course_code"], schedule, course["course_type"]])
+                                                                lecture_found = True
+                            # else:  # If there are no sections at all, consider the course as a whole
+                            #     if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
+                            #         recommended_courses.append([course["course_code"], "", "Required"])  # No schedule for courses without sections
                 return recommended_courses
             
             # Recommend courses
@@ -488,3 +510,146 @@ async def fetch_recommend_courses(token: str):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+
+async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
+    try:
+        user_info = await get_current_user_details(token)
+        pdf_info = user_info.pdf_uploaded
+        formatted_courses = [insert_space(c) for c in course.selected_courses]
+        course.selected_courses = formatted_courses
+        
+        if not pdf_info:
+            return {"message": "Not enough student information found", "success": False}
+        
+        degree_program = user_info.degree_program
+        admission_year = user_info.admission_year
+        program_collection_name = f"{degree_program.upper()}-{admission_year}"
+        program_collection = database.get_collection(program_collection_name)
+        prev_recommendations = user_info.recommendations
+        
+        def check_schedule_overlap(schedule1, schedule2):
+            day1, *time_range1 = schedule1.split(" ")
+            day2, *time_range2 = schedule2.split(" ")
+            
+            if day1 != day2:
+                return False
+            
+            time_range1 = " ".join(time_range1)
+            time_range2 = " ".join(time_range2)
+            
+            start_time1, end_time1 = map(lambda x: datetime.strptime(x, "%H:%M"), time_range1.split("-"))
+            start_time2, end_time2 = map(lambda x: datetime.strptime(x, "%H:%M"), time_range2.split("-"))
+            
+            return not (end_time1 <= start_time2 or end_time2 <= start_time1)
+                        
+        def course_already_taken(course_code, course_type):
+            if course_type == "required":
+                return course_code in user_info.required_courses
+            elif course_type == "area":
+                return course_code in user_info.area_courses
+            elif course_type == "core":
+                return course_code in user_info.core_courses
+            return False
+            
+        async def user_satisfies_prerequisites(prerequisites):
+            for prerequisite in prerequisites:
+                if prerequisite not in user_info.core_courses and prerequisite not in user_info.required_courses and prerequisite not in user_info.area_courses:
+                    return False
+            return True
+            
+        async def recommend_courses(course_type, num_courses, recommended_courses):
+            courses = await program_collection.find({"course_type": course_type}).to_list(length=None)
+            count = 0
+            for course in courses:
+                if count >= num_courses:
+                    break
+                
+                if not course_already_taken(course["course_code"], course["course_type"]):
+                    if course["sections"]:
+                        lecture_found = False
+                        recitation_found = False
+                        for section in course["sections"]:
+                            if section["times"]:
+                                schedule = section["times"][0][0]
+                                overlap = False
+                                for rec in prev_recommendations:
+                                    for rec_course in rec:
+                                        if check_schedule_overlap(schedule, rec_course[1]):
+                                            overlap = True
+                                            break
+                                    if overlap:
+                                        break
+                                if not overlap:
+                                    if await user_satisfies_prerequisites(course["condition"]["prerequisite"]):
+                                        if section["section"] and section["section"][-1].isdigit():
+                                            if section["section"][-1] == '0':
+                                                if not lecture_found:
+                                                    recommended_courses.append([course["course_code"], schedule, course["course_type"]])
+                                                    lecture_found = True
+                                                    count += 1
+                                            else:
+                                                if not recitation_found:
+                                                    section_code = course["course_code"] + " " + section["section"]
+                                                    recommended_courses.append([section_code, schedule, "Recitation"])
+                                                    recitation_found = True
+                                        else:
+                                            if not any(char.isdigit() for char in section["section"]):
+                                                if not lecture_found:
+                                                    recommended_courses.append([course["course_code"], schedule, course["course_type"]])
+                                                    lecture_found = True
+                                                    count += 1
+            return recommended_courses
+        
+        recommended_courses = []
+
+        for selected_course_code in course.selected_courses:
+            course_data = await program_collection.find_one({"course_code": selected_course_code})
+            if course_data:
+                if not course_already_taken(course_data["course_code"], course_data["course_type"]):
+                    if await user_satisfies_prerequisites(course_data["condition"]["prerequisite"]):
+                        if course_data["sections"]:
+                            lecture_found = False
+                            recitation_found = False
+                            for section in course_data["sections"]:
+                                if section["times"]:
+                                    schedule = section["times"][0][0]
+                                    overlap = False
+                                    for rec in prev_recommendations:
+                                        for rec_course in rec:
+                                            if check_schedule_overlap(schedule, rec_course[1]):
+                                                overlap = True
+                                                break
+                                        if overlap:
+                                            break
+                                    if not overlap:
+                                        if section["section"] and section["section"][-1].isdigit():
+                                            if section["section"][-1] == '0' and not lecture_found:
+                                                recommended_courses.append([course_data["course_code"], schedule, course_data["course_type"]])
+                                                lecture_found = True
+                                        else:
+                                            if not any(char.isdigit() for char in section["section"]):
+                                                if not lecture_found:
+                                                    recommended_courses.append([course_data["course_code"], schedule, course_data["course_type"]])
+                                                    lecture_found = True
+                                        if section["section"] and not section["section"][-1].isdigit() and not recitation_found:
+                                            section_code = course_data["course_code"] + " " + section["section"]
+                                            recommended_courses.append([section_code, schedule, "Recitation"])
+                                            recitation_found = True
+        
+        recommended_courses = await recommend_courses("core", course.core, recommended_courses)
+        recommended_courses = await recommend_courses("area", course.area, recommended_courses)
+        recommended_courses = await recommend_courses("required", course.required, recommended_courses)
+        recommended_courses = await recommend_courses("basic_science", course.basic_science, recommended_courses)
+        recommended_courses = await recommend_courses("university", course.university, recommended_courses)
+        # Assuming there is a 'free' category to handle "free" courses
+        recommended_courses = await recommend_courses("free", course.free, recommended_courses)
+        
+        return {"recommendations": recommended_courses}
+        
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    

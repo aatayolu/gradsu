@@ -135,7 +135,7 @@ async def get_current_user_details(credentials: HTTPAuthorizationCredentials = D
                 headers={"WWW-Authenticate": "Bearer"},
             )
         user = await user_collection.find_one({"username": username})
-        print("USER IS: ", user)
+        #print("USER IS: ", user)
         if user:
             pdf_info = user.get("pdf_uploaded")
             if pdf_info == False:
@@ -169,7 +169,7 @@ async def get_all_user(token: HTTPAuthorizationCredentials):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         user = await user_collection.find_one({"username": username})
-        print("USER IS: ", user)
+        #print("USER IS: ", user)
         if user:
             pdf_info = user.get("pdf_uploaded")
             if pdf_info == False:
@@ -233,14 +233,14 @@ def insert_space(course_code):
 async def add_prev_recoms(courses: AddPrevRecoom, token: str):
     current_user = await get_current_user(token)
     user_collection = database.get_collection("user")  # Assuming user_collection is obtained from somewhere
-    print("current user is: ", current_user)
+    #print("current user is: ", current_user)
     
     for course_list in courses.courses:  # Iterate over each list of courses
         for course_info_str in course_list:  # Iterate over each course info string in the list
             section = "0"  # Initialize section variable before processing each course
             
             course_info_str = course_info_str.strip()  # Extract the course info string
-            print("course info str is: ", course_info_str)
+            #print("course info str is: ", course_info_str)
             words = course_info_str.split()
             third_word = words[2]
             print("third word is: ", third_word)
@@ -248,9 +248,9 @@ async def add_prev_recoms(courses: AddPrevRecoom, token: str):
             
             # Check if there's a day immediately after the space after the course code
             course_code_end = course_info_str.find(" ", course_info_str.find(" ") + 1)
-            print("course code end is: ", course_code_end)
+            #print("course code end is: ", course_code_end)
             next_word = course_info_str[course_info_str.rfind(" ") + 1: course_code_end]
-            print("next word is: ", next_word)
+            #print("next word is: ", next_word)
             
             if third_word in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]:
                 # If the next word is a day, assume it's part of the course time, not the section
@@ -270,9 +270,9 @@ async def add_prev_recoms(courses: AddPrevRecoom, token: str):
                 course_time = course_info_str[index_first_letter:].strip()
                 section = third_word
             
-            print("course code is: ", course_code)
-            print("course time is: ", course_time)
-            print("section is: ", section)
+            # print("course code is: ", course_code)
+            # print("course time is: ", course_time)
+            # print("section is: ", section)
             
             total_info = {"course_code": course_code, "course_time": course_time, "section": section}
             await user_collection.update_one(
@@ -281,7 +281,7 @@ async def add_prev_recoms(courses: AddPrevRecoom, token: str):
             )
 
     updated_user = await get_user(current_user.username, user_collection)
-    print("updated user is: ", updated_user)
+    #print("updated user is: ", updated_user)
     
     if updated_user:
         return {"message": "Recommendations info updated successfully", "success": True}
@@ -654,7 +654,6 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
         recommended_courses = await recommend_courses("required", course.required, recommended_courses)
         recommended_courses = await recommend_courses("basic_science", course.basic_science, recommended_courses)
         recommended_courses = await recommend_courses("university", course.university, recommended_courses)
-        # Assuming there is a 'free' category to handle "free" courses
         recommended_courses = await recommend_courses("free", course.free, recommended_courses)
         
         return {"recommendations": recommended_courses}
@@ -665,7 +664,9 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+
+ # BELOW CODE IS FOR CONTENT COLLABRATIVE FILTERING RECOMMENDATION
 async def get_user_course_data(token: str):
     users_cursor = user_collection.find()
     users = []
@@ -823,7 +824,7 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
 
 
-
+# BELOW CODE IS FOR CONTENT BASED RECOMMENDATION
 async def get_course_data(token: str):
     curr_user = await get_current_user_details(token)
     curr_major = curr_user.degree_program

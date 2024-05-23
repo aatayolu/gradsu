@@ -59,13 +59,6 @@ app.add_middleware(
     allow_headers=["*"],
 ) 
 
-#an example of a route
-# @app.get("/")
-# def read_root():
-#      return {"Hello": "World"}
-# @app.get("/items/")
-# async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
-#     return {"token": token}
 
 @app.post("/user/login", tags=["User"])
 async def login_for_access_token(user_data: UserLogin):
@@ -102,7 +95,6 @@ async def change_password(user_data: ChangePassword, current_user: UserInDB = De
         new_hashed_password = get_password_hash(change_data.new_password)
         await update_password(user.username, new_hashed_password, user_collection)
         return {"message": "Password updated successfully"}
-
 
 
 @app.post("/user/addInfo", tags=["User"])
@@ -155,8 +147,6 @@ async def get_specific_course_recommendation(request: SpecificRecom, token: HTTP
         return response
     else:
         raise HTTPException(404, "No courses found")
-
-
 
 
 @app.post("/recommend/collabrativeFiltering", tags=["Recommend"])

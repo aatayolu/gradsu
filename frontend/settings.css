@@ -1,0 +1,94 @@
+/* CSS for Settings Page */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-image: url(blueBackground.jpg);
+    background-size: cover; /* Cover the entire background */
+    background-position: center; /* Center the background image */
+    background-repeat: no-repeat; /* Prevent background image from repeating */
+    
+}
+
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    text-align: center;
+}
+
+.welcome {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+/* Change Password Section */
+.change-password,
+.delete-account,
+.specific-course {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    margin-bottom: 20px; /* Added margin bottom between sections */
+}
+
+.change-password h2,
+.delete-account h2,
+.specific-course h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.change-password label,
+.delete-account label,
+.specific-course label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.change-password input,
+.delete-account input,
+.specific-course input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.change-password button,
+.delete-account button,
+.specific-course button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.change-password button:hover,
+.delete-account button:hover,
+.specific-course button:hover {
+    background-color: #0056b3;
+}
+
+/* Delete Account Section */
+.delete-button {
+    background-color: #dc3545; /* Red color for delete button */
+}
+
+.toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}

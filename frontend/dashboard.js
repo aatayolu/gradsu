@@ -1,5 +1,3 @@
-var userData = getUserData();
-
 document.addEventListener("DOMContentLoaded", function() {
     const hoursContainer = document.querySelector(".hours");
 
@@ -49,23 +47,35 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Example: Adding content to thursday-15:40
     addToCell('thursday', '15:40 - 16:30', 'Meeting with Team');
+
+    // Fetch user data and set variables
+    getUserData().then(data => setVars(data));
 });
 
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.classList.add('toast');
+    toast.textContent = msg;
 
-function openmySU() {
-    window.open('https://mysu.sabanciuniv.edu/', '_blank');
+    document.body.appendChild(toast);
+
+    // Automatically remove the toast after a certain duration (e.g., 3 seconds)
+    setTimeout(function() {
+        toast.remove();
+    }, 3000);
 }
+
 
 function openbanner() {
     window.open('https://bannerweb.sabanciuniv.edu/', '_blank');
 }
 
-
 var access_token = sessionStorage.getItem("accessToken");
+console.log(access_token);
 
 async function getUserData() {
     const fetchOptions = {
-        method: 'GET',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Accept': '*/*',
@@ -89,4 +99,22 @@ async function getUserData() {
         showToast('An error occurred. Please try again.');
         throw error; // Rethrow the error to be caught by the caller if needed
     }
+}
+
+function setVars(userData) {
+    var major = document.getElementById('major');
+    var admissionYear = document.getElementById('admYear');
+    var username = document.getElementById('username');
+    major.textContent = "Major: " + userData.degree_program.toString();
+    major.style.color = "black";
+    admissionYear.textContent = "Admission Year\n" + userData.admission_year.toString().slice(0,4);
+    admissionYear.style.color = "black";
+    username.textContent = userData.username;
+    username.style.color = "black";
+
+    sessionStorage.setItem("username", userData.username.toString());
+}
+
+function openSettings(){
+    window.location.href = 'settings.html';
 }

@@ -165,7 +165,7 @@ function extractInfo(info){
                 }
             }
             //console.log(shortProgram);
-            degreeProgramm = program;
+            degreeProgramm = shortProgram;
 
         } else {
             //console.log("Program not found");
@@ -206,13 +206,12 @@ function extractCourses(info) {
 
 
 async function submitUser() {
-
     const requestBody = {
-        courses : coursess,
+        courses: coursess,
         admission_year: admitYearr,
         degree_program: degreeProgramm,
         double_major: "empty",
-        minor : "empty"
+        minor: "empty"
     };
 
     const fetchOptions = {
@@ -228,6 +227,9 @@ async function submitUser() {
     console.log('Request Body:', requestBody);
     console.log('Fetch Options:', fetchOptions);
 
+    const spinnerOverlay = document.getElementById('spinnerOverlay');
+    spinnerOverlay.style.visibility = 'visible'; // Show spinner
+
     try {
         const response = await fetch('http://95.214.177.119/user/addInfo', fetchOptions);
 
@@ -239,15 +241,9 @@ async function submitUser() {
         const data = await response.json();
 
         if (data.success) {
-            // Store the token in session storage
-            sessionStorage.setItem('accessToken', data.access_token);
-            // Redirect to the PDF page on successful login
-            
-            window.location.href = 'dashboard.html';
-            
+            window.location.href = 'dashboard.html'; // Redirect on success
         } else {
-            // Handle login failure
-            showToast(data.message || 'upload failed. Please try again.');
+            showToast(data.message || 'Upload failed. Please try again.');
         }
 
         return data;
@@ -255,6 +251,8 @@ async function submitUser() {
         console.error('Error:', error);
         showToast('An error occurred. Please try again.');
         throw error; // Rethrow the error to be caught by the caller if needed
+    } finally {
+        spinnerOverlay.style.visibility = 'hidden'; // Hide spinner
     }
 }
 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="welcome" id="welcomeMessage">Welcome User</h1>
+        <p style="color: white;" onclick="goToDashboard()"> Return Home</p>
+        <!-- Change Password Section -->
+        <div class="change-password">
+            <h2>Change Password</h2>
+            <form id="changePasswordForm">
+                <label for="currentPassword">Current Password:</label>
+                <input type="password" id="currentPassword" name="currentPassword" required>
+                <label for="newPassword">New Password:</label>
+                <input type="password" id="newPassword" name="newPassword" required>
+                <label for="confirmPassword">Confirm New Password:</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+                <button type="button" onclick="changePassword()">Change Password</button>
+            </form>
+        </div>
+
+        <!-- Delete Account Section -->
+        <div class="delete-account">
+            <h2>Delete Account</h2>
+            <form id="deleteAccountForm">
+                <label for="currentPasswordDelete">Current Password:</label>
+                <input type="password" id="currentPasswordDelete" name="currentPasswordDelete" required>
+                <button type="button" class="delete-button">Delete Account</button>
+            </form>
+        </div>
+
+        <!-- Specific Course Recommendation Section -->
+        <div class="specific-course">
+            <h2>Specific Course Recommendation</h2>
+            <form id="specificCourseForm">
+                <label for="core">Core Courses:</label>
+                <input type="number" id="core" name="core" required>
+                <label for="area">Area Courses:</label>
+                <input type="number" id="area" name="area" required>
+                <label for="free">Free Electives:</label>
+                <input type="number" id="free" name="free" required>
+                <label for="required">Required Courses:</label>
+                <input type="number" id="required" name="required" required>
+                <label for="basic_science">Basic Science Courses:</label>
+                <input type="number" id="basic_science" name="basic_science" required>
+                <label for="university">University Courses:</label>
+                <input type="number" id="university" name="university" required>
+                <button type="button">Save Recommendations</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="spinner-overlay" id="spinnerOverlay">
+        <div class="spinner"></div>
+    </div>
+    <script src="settings.js"></script>
+</body>
+</html>

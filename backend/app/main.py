@@ -42,7 +42,8 @@ from .routers.router import(
     get_all_user,
     delete_user,
     fetch_recommend_specific_courses,
-    process_recommendation
+    process_recommendation,
+    process_content_recommendation
 
 
     
@@ -158,6 +159,11 @@ async def get_specific_course_recommendation(request: SpecificRecom, token: HTTP
 
 
 
-@app.post("/recommend/advanced", tags=["Recommend"])
+@app.post("/recommend/collabrativeFiltering", tags=["Recommend"])
 async def recommend_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     return await process_recommendation(token)
+
+
+@app.post("/recommend/contentBased", tags=["Recommend"])
+async def recommend_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    return await process_content_recommendation(token)

@@ -15,6 +15,9 @@ from datetime import datetime, timedelta
 from fastapi import Body
 import re
 import numpy as np
+from jose import JWTError, jwt
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import LabelEncoder
 from scipy.sparse.linalg import svds
 SECRET_KEY = "83daa0256a2289b0fb23693bf1f6034d44396675749244721a2b20e896e1662"
@@ -815,6 +818,123 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
                                     if course_id not in taken_courses and course_id not in previous_recommendations]
 
         return {"recommendations": filtered_recommendations, "success": True}
+
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+
+
+
+async def get_course_data(token: str):
+    curr_user = await get_current_user_details(token)
+    curr_major = curr_user.degree_program
+
+    collection_names = await database.list_collection_names()
+    course_collections = [name for name in collection_names if name.startswith(curr_major)]
+
+    course_data = []
+
+    for collection_name in course_collections:
+        collection = database[collection_name]
+        courses_cursor = collection.find()
+        async for course in courses_cursor:
+            course_data.append(course)
+    
+    return course_data
+
+
+def extract_features(course):
+    # Flatten the prerequisites list of lists into a single list of strings
+    prerequisites = course.get("condition", {}).get("prerequisite", [])
+    flat_prerequisites = [item for sublist in prerequisites for item in sublist]
+
+    features = [
+        course["course_type"],
+        course["faculty_code"],
+        " ".join(flat_prerequisites),  # Join the flattened list of prerequisites
+        # Add more features as needed
+    ]
+    return " ".join(features)
+
+async def prepare_user_profile(user, token):
+    taken_courses = (user.get("required_courses", []) + 
+                     user.get("science_courses", []) + 
+                     user.get("university_courses", []) +
+                     user.get("area_courses", []) + 
+                     user.get("free_courses", []) + 
+                     user.get("core_courses", []))
+    
+    user_profile = []
+    curr_user = await get_current_user_details(token)
+    for course_code in taken_courses:
+        course = await database[curr_user.degree_program].find_one({"course_code": course_code})
+        if course:
+            user_profile.append(extract_features(course))
+    
+    return " ".join(user_profile)
+
+
+async def content_based_recommendations(user, token: str, num_recommendations=5):
+    course_data = await get_course_data(token)
+    
+    if not course_data:
+        raise ValueError("No course data found.")
+
+    user_profile = await prepare_user_profile(user, token)
+
+    # Vectorize the course features
+    tfidf_vectorizer = TfidfVectorizer()
+    course_features = [extract_features(course) for course in course_data]
+    tfidf_matrix = tfidf_vectorizer.fit_transform(course_features)
+
+    # Vectorize the user profile
+    user_tfidf = tfidf_vectorizer.transform([user_profile])
+
+    # Compute cosine similarity between user profile and courses
+    cosine_similarities = cosine_similarity(user_tfidf, tfidf_matrix).flatten()
+    
+    # Get top N recommendations
+    similar_indices = cosine_similarities.argsort()[:-num_recommendations-1:-1]
+    recommended_courses = [course_data[i]["course_code"] for i in similar_indices]
+
+    # Filter out already taken and previously recommended courses
+    taken_courses = set(user.get("required_courses", []) + 
+                        user.get("science_courses", []) + 
+                        user.get("university_courses", []) +
+                        user.get("area_courses", []) + 
+                        user.get("free_courses", []) + 
+                        user.get("core_courses", []))
+    
+    previous_recommendations = set(rec["course_code"] for rec in user.get("recommendations", []))
+
+    filtered_recommendations = [course_id for course_id in recommended_courses 
+                                if course_id not in taken_courses and course_id not in previous_recommendations]
+
+    return filtered_recommendations
+
+async def process_content_recommendation(token: HTTPAuthorizationCredentials):
+    try:
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+
+        user = await user_collection.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Retrieve degree program and term from the user entity
+        degree_program = user.get("degree_program")
+        admission_year = user.get("admission_year")
+
+        if not degree_program or not admission_year:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Degree program or admission year not found in user profile")
+
+        try:
+            recommendations = await content_based_recommendations(user, token)
+        except ValueError as e:
+            return {"recommendations": [], "success": False, "message": str(e)}
+
+        return {"recommendations": recommendations, "success": True}
 
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})

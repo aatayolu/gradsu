@@ -1,5 +1,8 @@
 
 var access_token = sessionStorage.getItem("accessToken");
+var admitYear = "";
+var couses = [];
+var degreeProgram = "";
 
 document.getElementById('pdf-upload').addEventListener('change', function() {
     var file = this.files[0]; // Get the selected file
@@ -126,6 +129,7 @@ function extractInfo(info){
             year += '02'; // If spring, add '02' to the end of the year
         }
         console.log(year);
+        admitYear = year;
 
         const programRegex = /Program\(s\)\s*:\s*(.*?)\s*Admit Semester/;
         const match2 = info.match(programRegex);
@@ -133,6 +137,7 @@ function extractInfo(info){
         if (match2 && match2.length >= 2) {
             let program = match2[1].trim();
             console.log(program);
+            
 
             const lowercaseProgram = program.toLowerCase();
 
@@ -145,11 +150,10 @@ function extractInfo(info){
                 "management": "man",
                 "material": "mat",
                 "psychology": "psy",
-                "psikiloji": "psy"
                 // Add more majors and their abbreviations as needed
             };
 
-            var shortProgram = "Program not Found";
+            var shortProgram = "PNF";
             // Split the program name into words
             // Iterate through the program abbreviations mapping
             console.log(lowercaseProgram);
@@ -161,6 +165,8 @@ function extractInfo(info){
                 }
             }
             console.log(shortProgram);
+            var degreeProgram = program;
+
         } else {
             console.log("Program not found");
         }

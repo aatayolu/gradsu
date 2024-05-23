@@ -144,7 +144,8 @@ function extractInfo(info){
                 "electric": "ee",
                 "management": "man",
                 "material": "mat",
-                "psychology": "psy"
+                "psychology": "psy",
+                "psikiloji": "psy"
                 // Add more majors and their abbreviations as needed
             };
 

@@ -178,7 +178,7 @@ async def add_course(course: CourseAdd, token: HTTPAuthorizationCredentials = De
         raise HTTPException(404, "Cannot add course")
     
 
-@app.get("/course/getLeast", tags=["Course"])
+@app.get("/course/getLeast", tags=["Course"], summary="Get least 3 courses")
 async def get_top_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     response =  await fetch_least_courses(token)
     if response:

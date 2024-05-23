@@ -1,3 +1,5 @@
+var userData = getUserData();
+
 document.addEventListener("DOMContentLoaded", function() {
     const hoursContainer = document.querySelector(".hours");
 
@@ -56,4 +58,35 @@ function openmySU() {
 
 function openbanner() {
     window.open('https://bannerweb.sabanciuniv.edu/', '_blank');
+}
+
+
+var access_token = sessionStorage.getItem("accessToken");
+
+async function getUserData() {
+    const fetchOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Authorization': `Bearer ${access_token}`
+        }
+    };
+
+    try {
+        const response = await fetch('http://95.214.177.119/user/getAll', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Response Data:', data);
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
+    }
 }

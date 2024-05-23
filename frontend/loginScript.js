@@ -13,6 +13,9 @@ function goToLogin() {
 function goToPdf() {
     window.location.href = 'pdf.html';
 }
+function goToDashboard() {
+    window.location.href = 'dashboard.html';
+}
 
 function showToast(msg) {
     const toast = document.createElement('div');
@@ -125,12 +128,19 @@ async function loginUser(email, password) {
 
         const data = await response.json();
 
-        if (data.success) {
+        if (data.success && data.pdf_uploaded) {
             // Store the token in session storage
             sessionStorage.setItem('accessToken', data.access_token);
             // Redirect to the PDF page on successful login
+            goToDashboard();
+        } 
+        else if(data.success && !data.pdf_uploadedata){
+            // Store the token in session storage
+            sessionStorage.setItem('accessToken', data.access_token);
+            // Redirect to the dashboard since the pdf is already uploaded before
             goToPdf();
-        } else {
+        }
+        else {
             // Handle login failure
             showToast(data.message || 'Login failed. Please try again.');
         }

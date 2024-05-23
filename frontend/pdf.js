@@ -1,6 +1,6 @@
 
 var access_token = sessionStorage.getItem("accessToken");
-console.log(access_token);
+//console.log(access_token);
 var admitYearr = "";
 var coursess = [];
 var degreeProgramm = "";
@@ -30,7 +30,7 @@ document.getElementById('pdf-upload').addEventListener('change', function() {
         var reader = new FileReader();
         reader.onload = function(event) {
             var pdfContent = event.target.result;
-            console.log('PDF content:', pdfContent);
+            //console.log('PDF content:', pdfContent);
 
             // Use PDF.js to extract text from the PDF file
             extractTextFromPDF(pdfContent);
@@ -86,7 +86,7 @@ function extractTextFromPDF(pdfContent) {
             });
 
             // Log the extracted text
-            console.log('Extracted text:', text);
+            //console.log('Extracted text:', text);
             extractInfo(text);
             
             // Store the extracted text or perform other operations as needed
@@ -129,7 +129,7 @@ function extractInfo(info){
         } else if (semester === 'Spring') {
             year += '02'; // If spring, add '02' to the end of the year
         }
-        console.log(year);
+        //console.log(year);
         admitYearr = year;
 
         const programRegex = /Program\(s\)\s*:\s*(.*?)\s*Admit Semester/;
@@ -156,7 +156,7 @@ function extractInfo(info){
             var shortProgram = "PNF";
             // Split the program name into words
             // Iterate through the program abbreviations mapping
-            console.log(lowercaseProgram);
+            //console.log(lowercaseProgram);
             for (const [major, abbreviation] of Object.entries(programAbbreviations)) {
                 // Check if any word in the program name matches the lowercase major
                 if (lowercaseProgram.includes(major)) {
@@ -164,19 +164,19 @@ function extractInfo(info){
                     break; // Exit the loop once a match is found
                 }
             }
-            console.log(shortProgram);
+            //console.log(shortProgram);
             degreeProgramm = program;
 
         } else {
-            console.log("Program not found");
+            //console.log("Program not found");
         }
     } else {
-        console.log("Admit year not found");
+        //console.log("Admit year not found");
     }
 
     const extractedCourses = extractCourses(info);
     coursess = extractedCourses;
-    console.log(coursess);
+    //console.log(coursess);
 }
 
 function extractCourses(info) {

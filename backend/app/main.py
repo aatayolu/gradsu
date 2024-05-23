@@ -169,7 +169,7 @@ async def get_top_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_s
         raise HTTPException(404, "No courses found")
     
 
-@app.post("/course/add", tags=["Course"], summary="Add course to user entity")
+@app.post("/user/addCourse", tags=["User"], summary="Add course to user entity")
 async def add_course(course: CourseAdd, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     response = await add_course_info_user(course, token)
     if response:

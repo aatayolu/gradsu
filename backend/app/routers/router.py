@@ -681,6 +681,7 @@ async def get_user_course_data(token: str):
     user_ids = [user["_id"] for user in users]
     #print("USER IDS ARE: ", user_ids)
     course_ids = []
+    course_data = {}
     interactions = []
 
     for collection_name in course_collections:
@@ -693,8 +694,10 @@ async def get_user_course_data(token: str):
         
         for course in courses:
             course_ids.append(course["course_code"])
+            course_data[course["course_code"]] = course  # Store the course data for prerequisite checks
+
             #print("COURSE IDS ARE: ", course_ids)
-        
+        #print("course data is: ", course_data)
         for user in users:
             taken_courses = (user.get("required_courses", []) + 
                              user.get("science_courses", []) + 
@@ -711,10 +714,10 @@ async def get_user_course_data(token: str):
                     #print("INTERACTIONS ARE: ", interactions)
     
     
-    return interactions, user_ids, course_ids
+    return interactions, user_ids, course_ids, course_data
 
-async def prepare_data(token : str):
-    interactions, user_ids, course_ids = await get_user_course_data(token)
+async def prepare_data(token: str):
+    interactions, user_ids, course_ids, course_data = await get_user_course_data(token)
     
     if not interactions:
         raise ValueError("No interactions found.")
@@ -735,10 +738,8 @@ async def prepare_data(token : str):
     for user, course in zip(user_ids_encoded, course_ids_encoded):
         interaction_matrix[user, course] = 1
     
-    print(f"Interaction matrix shape: {interaction_matrix.shape}")
-    print(interaction_matrix)
-    
-    return interaction_matrix, user_encoder, course_encoder
+    return interaction_matrix, user_encoder, course_encoder, course_data
+
 
 def perform_svd(interaction_matrix, k=50):
     num_users, num_courses = interaction_matrix.shape
@@ -751,14 +752,24 @@ def perform_svd(interaction_matrix, k=50):
     predicted_ratings = np.dot(np.dot(u, sigma), vt)
     return predicted_ratings
 
-def get_recommendations_for_user(user_id, predicted_ratings, user_encoder, course_encoder, num_recommendations=5):
+def get_recommendations_for_user(user_id, predicted_ratings, user_encoder, course_encoder, course_data, taken_courses, num_recommendations=5):
     user_idx = user_encoder.transform([user_id])[0]
     user_ratings = predicted_ratings[user_idx]
     
     recommended_indices = np.argsort(user_ratings)[::-1]
     recommended_courses = course_encoder.inverse_transform(recommended_indices)
+
+    def has_prerequisites(course_id):
+        course = course_data[course_id]
+        prerequisites = course.get("condition", {}).get("prerequisite", [])
+        for prereq in prerequisites:
+            if not all(prereq_course in taken_courses for prereq_course in prereq):
+                return False
+        return True
+
+    filtered_recommendations = [course_id for course_id in recommended_courses if has_prerequisites(course_id)]
     
-    return recommended_courses[:num_recommendations]
+    return filtered_recommendations[:num_recommendations]
 
 
 async def process_recommendation(token: HTTPAuthorizationCredentials):
@@ -780,7 +791,7 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Degree program or admission year not found in user profile")
 
         try:
-            interaction_matrix, user_encoder, course_encoder = await prepare_data(token)
+            interaction_matrix, user_encoder, course_encoder, course_data = await prepare_data(token)
         except ValueError as e:
             return {"recommendations": [], "success": False, "message": str(e)}
 
@@ -788,7 +799,6 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
             return {"recommendations": [], "success": True}
         
         predicted_ratings = perform_svd(interaction_matrix)
-        recommendations = get_recommendations_for_user(user["_id"], predicted_ratings, user_encoder, course_encoder)
         taken_courses = set(user.get("required_courses", []) + 
                             user.get("science_courses", []) + 
                             user.get("university_courses", []) +
@@ -796,7 +806,8 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
                             user.get("free_courses", []) + 
                             user.get("core_courses", []))
 
-        
+        recommendations = get_recommendations_for_user(user["_id"], predicted_ratings, user_encoder, course_encoder, course_data, taken_courses)
+
         # Convert recommendations to a JSON-serializable format
         previous_recommendations = set(rec["course_code"] for rec in user.get("recommendations", []))
 
@@ -804,7 +815,6 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
                                     if course_id not in taken_courses and course_id not in previous_recommendations]
 
         return {"recommendations": filtered_recommendations, "success": True}
-
 
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})

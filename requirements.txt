@@ -3,7 +3,7 @@ uvicorn==0.15.0
 motor
 bcrypt
 numpy
-sklearn
+scikit-learn
 pandas
 scipy
 email-validator==1.1.3

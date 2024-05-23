@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .models.model import Course
 from .models.model import ScienceCourse
-from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom
+from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd
 from typing import List  # Import List from the typing module
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -43,8 +43,10 @@ from .routers.router import(
     delete_user,
     fetch_recommend_specific_courses,
     process_recommendation,
-    process_content_recommendation
-
+    process_content_recommendation,
+    fetch_top_courses,
+    add_course_info_user,
+    fetch_least_courses
 
     
 )
@@ -123,7 +125,7 @@ async def add_course(courses: AddPrevRecoom, token: Annotated[str, Depends(oauth
     else:
         raise HTTPException(404, "Cannot add course")
 
-@app.post("/user/getAll", response_model=UserGetAllResponse, tags=["User"])
+@app.post("/user/getAll", response_model=UserGetAllResponse, tags=["User"], summary="Get all user info")
 async def get_all_user_handler(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     response = await get_all_user(token)
     if response:
@@ -140,7 +142,7 @@ async def delete_user_handler(token: HTTPAuthorizationCredentials = Depends(oaut
         raise HTTPException(404, "Cannot delete user")
     
 
-@app.post("/recommend/specificCourse", tags=["Recommend"])
+@app.post("/recommend/specificCourse", tags=["Recommend"], summary="Recommend specific courses")
 async def get_specific_course_recommendation(request: SpecificRecom, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     response = await fetch_recommend_specific_courses(request, token)
     if response:
@@ -149,11 +151,37 @@ async def get_specific_course_recommendation(request: SpecificRecom, token: HTTP
         raise HTTPException(404, "No courses found")
 
 
-@app.post("/recommend/collabrativeFiltering", tags=["Recommend"])
+@app.post("/recommend/collabrativeFiltering", tags=["Recommend"], summary="Recommend courses using collabrative filtering")
 async def recommend_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     return await process_recommendation(token)
 
 
-@app.post("/recommend/contentBased", tags=["Recommend"])
+@app.post("/recommend/contentBased", tags=["Recommend"], summary="Recommend courses using content based filtering")
 async def recommend_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     return await process_content_recommendation(token)
+
+@app.get("/course/getTop", tags=["Course"], summary="Get top 3 courses")
+async def get_top_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    response =  await fetch_top_courses(token)
+    if response:
+        return response
+    else:
+        raise HTTPException(404, "No courses found")
+    
+
+@app.post("/course/add", tags=["Course"], summary="Add course to user entity")
+async def add_course(course: CourseAdd, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    response = await add_course_info_user(course, token)
+    if response:
+        return response
+    else:
+        raise HTTPException(404, "Cannot add course")
+    
+
+@app.get("/course/getLeast", tags=["Course"])
+async def get_top_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    response =  await fetch_least_courses(token)
+    if response:
+        return response
+    else:
+        raise HTTPException(404, "No courses found")

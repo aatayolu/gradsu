@@ -1,6 +1,6 @@
 from ..models.model import Course
 from ..models.model import CourseRecommendation
-from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData
+from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData, CourseAdd
 from typing import List  # Import List from the typing module
 from fastapi import APIRouter
 from ..config.database import cs_2018_fall
@@ -14,6 +14,7 @@ from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body
 import re
+from collections import Counter
 import numpy as np
 from jose import JWTError, jwt
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -939,3 +940,144 @@ async def process_content_recommendation(token: HTTPAuthorizationCredentials):
 
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+    
+
+
+async def fetch_top_courses(token: str):
+    try:
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+
+        user = await user_collection.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Retrieve degree program and term from the user entity
+        users_cursor = user_collection.find()
+        users = []
+        async for user in users_cursor:
+            users.append(user)
+        
+        all_courses = []
+        for user in users:
+            all_courses.extend(user.get("required_courses", []))
+            all_courses.extend(user.get("science_courses", []))
+            all_courses.extend(user.get("university_courses", []))
+            all_courses.extend(user.get("area_courses", []))
+            all_courses.extend(user.get("free_courses", []))
+            all_courses.extend(user.get("core_courses", []))
+
+        if not all_courses:
+            return {"top_courses": [], "success": True, "message": "No courses found"}
+
+        # Count course frequencies
+        course_counts = Counter(all_courses)
+        top_courses = course_counts.most_common(3)
+
+        # Prepare the response
+        top_courses_list = [{"course_code": course, "count": count} for course, count in top_courses]
+
+        return {"top_courses": top_courses_list, "success": True}
+
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+
+
+async def fetch_least_courses(token: HTTPAuthorizationCredentials):
+    try:
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+
+        user = await user_collection.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Retrieve all users
+        users_cursor = user_collection.find()
+        users = []
+        async for user in users_cursor:
+            users.append(user)
+        
+        all_courses = []
+        for user in users:
+            all_courses.extend(user.get("required_courses", []))
+            all_courses.extend(user.get("science_courses", []))
+            all_courses.extend(user.get("university_courses", []))
+            all_courses.extend(user.get("area_courses", []))
+            all_courses.extend(user.get("free_courses", []))
+            all_courses.extend(user.get("core_courses", []))
+
+        if not all_courses:
+            return {"least_courses": [], "success": True, "message": "No courses found"}
+
+        # Count course frequencies
+        course_counts = Counter(all_courses)
+        most_common_courses = course_counts.most_common(3)
+        least_common_courses = course_counts.most_common()[:-4:-1]  # Get the least common 3 courses
+
+        # Get counts of the most common courses
+        most_common_counts = {course: count for course, count in most_common_courses}
+
+        # Filter out least common courses that have the same count as any of the most common courses
+        filtered_least_courses = [
+            (course, count) for course, count in least_common_courses
+            if count not in most_common_counts.values()
+        ]
+
+        # Ensure we get exactly 3 courses in the result
+        filtered_least_courses = filtered_least_courses[:3]
+
+        # Prepare the response
+        least_courses_list = [{"course_code": course, "count": count} for course, count in filtered_least_courses]
+
+        return {"least_courses": least_courses_list, "success": True}
+
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})
+
+async def add_course_info_user(course_info : CourseAdd, token: str):
+    current_user = await get_current_user_details(token)
+    # Construct the program collection name based on admission year and degree program
+    program_collection_name = f"{current_user.degree_program.upper()}-{current_user.admission_year}"
+    # Get the collection for the program and year
+    program_collection = database.get_collection(program_collection_name)
+
+    
+    # Loop through the courses and update the user's entity based on course type
+    for course_code in course_info.courses:
+        # Modify the course_code
+
+        modified_course_code = course_code.upper()  # Convert to uppercase
+        modified_course_code = insert_space(modified_course_code)  # Insert space before the first digit
+        # Find all occurrences of the modified course code in the program collection
+        courses = program_collection.find({"course_code": modified_course_code})
+        
+        async for course in courses:
+            if course:
+                # Check the course type
+                course_type = course.get("course_type")
+                
+                # Update the user's entity based on course type
+                if course_type == "area":
+                    await user_collection.update_one({"username": current_user.username}, {"$addToSet": {"area_courses": modified_course_code}})
+                elif course_type == "free":
+                    await user_collection.update_one({"username": current_user.username}, {"$addToSet": {"free_courses": modified_course_code}})
+                elif course_type == "required":
+                    await user_collection.update_one({"username": current_user.username}, {"$addToSet": {"required_courses": modified_course_code}})
+                elif course_type == "core":
+                    await user_collection.update_one({"username": current_user.username}, {"$addToSet": {"core_courses": modified_course_code}})
+                elif course_type == "science_engineering":
+                    await user_collection.update_one({"username": current_user.username}, {"$addToSet": {"science_courses": modified_course_code}})
+                elif course_type == "university":
+                    await user_collection.update_one({"username": current_user.username}, {"$addToSet": {"university_courses": modified_course_code}})
+    
+    updated_user = await get_user(current_user.username, user_collection)
+    
+    if updated_user:
+        return {"message": "Course info updated successfully", "success": True}
+    else:
+        return {"message": "Failed to update course info", "success": False}

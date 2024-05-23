@@ -104,7 +104,7 @@ async def change_password(user_data: ChangePassword, current_user: UserInDB = De
 
 
 @app.post("/user/addInfo", tags=["User"])
-async def add_user_info_route(user_info: UserAddInfo, token: Annotated[str, Depends(oauth2_scheme)]):
+async def add_user_info_route(user_info: UserAddInfo, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     response = await add_user_info(user_info, token)
     if response:
         return response
@@ -113,7 +113,7 @@ async def add_user_info_route(user_info: UserAddInfo, token: Annotated[str, Depe
 
 
 @app.post("/recommend/course", tags=["Recommend"])
-async def get_course_recommendation(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_course_recommendation(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
     response = await fetch_recommend_courses(token)
     if response:
         return response

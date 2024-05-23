@@ -1,6 +1,6 @@
 from ..models.model import Course
 from ..models.model import CourseRecommendation
-from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom
+from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData
 from typing import List  # Import List from the typing module
 from fastapi import APIRouter
 from ..config.database import cs_2018_fall
@@ -81,6 +81,13 @@ async def get_user(username: str, user_collection):
         return UserInDB(**user)
     return None
 
+async def get_user_for_login(username: str, user_collection):
+    user = await user_collection.find_one({"username": username})
+    if user:
+        return LoginData(**user)
+    return None
+
+
 async def get_user_info(username: str) -> UserInDB:
     try:
         user = await user_collection.find_one({"username": username})
@@ -103,7 +110,7 @@ async def get_user_info(username: str) -> UserInDB:
 
 # Function to authenticate user
 async def authenticate_user(username: str, password: str, user_collection):
-    user = await get_user(username, user_collection)
+    user = await get_user_for_login(username, user_collection)
     if not user:
         return False
     if not verify_password(password, user.password):

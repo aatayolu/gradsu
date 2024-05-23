@@ -149,3 +149,7 @@ class SpecificRecom(BaseModel):
     required : int
     basic_science : int
     university : int
+
+class LoginData(User):
+    password: str
+    pdf_uploaded: bool

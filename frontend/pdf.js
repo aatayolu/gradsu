@@ -1,8 +1,9 @@
 
 var access_token = sessionStorage.getItem("accessToken");
-var admitYear = "";
-var couses = [];
-var degreeProgram = "";
+console.log(access_token);
+var admitYearr = "";
+var coursess = [];
+var degreeProgramm = "";
 
 document.getElementById('pdf-upload').addEventListener('change', function() {
     var file = this.files[0]; // Get the selected file
@@ -104,7 +105,7 @@ function continueToDashboard() {
     var pdfFile = pdfInput.files[0]; // Access the selected file from the input
 
     if (pdfFile) {
-        window.location.href = 'dashboard.html'; 
+        submitUser();
     } else {
         alert('Please upload a PDF file before continuing.');
     }
@@ -129,14 +130,13 @@ function extractInfo(info){
             year += '02'; // If spring, add '02' to the end of the year
         }
         console.log(year);
-        admitYear = year;
+        admitYearr = year;
 
         const programRegex = /Program\(s\)\s*:\s*(.*?)\s*Admit Semester/;
         const match2 = info.match(programRegex);
 
         if (match2 && match2.length >= 2) {
             let program = match2[1].trim();
-            console.log(program);
             
 
             const lowercaseProgram = program.toLowerCase();
@@ -165,7 +165,7 @@ function extractInfo(info){
                 }
             }
             console.log(shortProgram);
-            var degreeProgram = program;
+            degreeProgramm = program;
 
         } else {
             console.log("Program not found");
@@ -175,7 +175,8 @@ function extractInfo(info){
     }
 
     const extractedCourses = extractCourses(info);
-    console.log(extractedCourses);
+    coursess = extractedCourses;
+    console.log(coursess);
 }
 
 function extractCourses(info) {
@@ -201,4 +202,72 @@ function extractCourses(info) {
 
     // Return the extracted courses
     return courses;
+}
+
+
+async function submitUser() {
+
+    const requestBody = {
+        courses : coursess,
+        admission_year: admitYearr,
+        degree_program: degreeProgramm,
+        double_major: "empty",
+        minor : "empty"
+    };
+
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Authorization': `Bearer ${access_token}`
+        },
+        body: JSON.stringify(requestBody)
+    };
+
+    console.log('Request Body:', requestBody);
+    console.log('Fetch Options:', fetchOptions);
+
+    try {
+        const response = await fetch('http://95.214.177.119/user/addInfo', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Store the token in session storage
+            sessionStorage.setItem('accessToken', data.access_token);
+            // Redirect to the PDF page on successful login
+            
+            window.location.href = 'dashboard.html';
+            
+        } else {
+            // Handle login failure
+            showToast(data.message || 'upload failed. Please try again.');
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
+    }
+}
+
+
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.classList.add('toast');
+    toast.textContent = msg;
+
+    document.body.appendChild(toast);
+
+    // Automatically remove the toast after a certain duration (e.g., 3 seconds)
+    setTimeout(function() {
+        toast.remove();
+    }, 3000);
 }

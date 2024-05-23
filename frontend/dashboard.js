@@ -48,3 +48,12 @@ document.addEventListener("DOMContentLoaded", function() {
     // Example: Adding content to thursday-15:40
     addToCell('thursday', '15:40 - 16:30', 'Meeting with Team');
 });
+
+
+function openmySU() {
+    window.open('https://mysu.sabanciuniv.edu/', '_blank');
+}
+
+function openbanner() {
+    window.open('https://bannerweb.sabanciuniv.edu/', '_blank');
+}

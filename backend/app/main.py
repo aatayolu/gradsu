@@ -42,6 +42,7 @@ from .routers.router import(
     get_all_user,
     delete_user,
     fetch_recommend_specific_courses,
+    process_recommendation
 
 
     
@@ -154,3 +155,9 @@ async def get_specific_course_recommendation(request: SpecificRecom, token: HTTP
     else:
         raise HTTPException(404, "No courses found")
 
+
+
+
+@app.post("/recommend/advanced", tags=["Recommend"])
+async def recommend_courses(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    return await process_recommendation(token)

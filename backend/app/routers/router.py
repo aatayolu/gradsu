@@ -14,6 +14,9 @@ from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body
 import re
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
+from scipy.sparse.linalg import svds
 SECRET_KEY = "83daa0256a2289b0fb23693bf1f6034d44396675749244721a2b20e896e1662"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -660,3 +663,148 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+async def get_user_course_data(token: str):
+    users_cursor = user_collection.find()
+    users = []
+    curr_user = await get_current_user_details(token)
+    curr_major = curr_user.degree_program
+
+    async for user in users_cursor:
+        users.append(user)
+        #print("USER IN GET: ", user)
+    
+    collection_names = await database.list_collection_names()
+
+    course_collections = [name for name in collection_names if name.startswith(curr_major)]
+    #print("COURSE COLLECTIONS ARE: ", course_collections)
+
+    user_ids = [user["_id"] for user in users]
+    #print("USER IDS ARE: ", user_ids)
+    course_ids = []
+    interactions = []
+
+    for collection_name in course_collections:
+        collection = database[collection_name]
+        courses_cursor = collection.find()
+        courses = []
+        async for course in courses_cursor:
+            courses.append(course)
+            #print("COURSE IN GET: ", course)
+        
+        for course in courses:
+            course_ids.append(course["course_code"])
+            #print("COURSE IDS ARE: ", course_ids)
+        
+        for user in users:
+            taken_courses = (user.get("required_courses", []) + 
+                             user.get("science_courses", []) + 
+                             user.get("university_courses", []) +
+                             user.get("area_courses", []) + 
+                             user.get("free_courses", []) + 
+                             user.get("core_courses", []))
+                             
+            #print(f"User {user['_id']} taken courses: {taken_courses}")
+            for course_id in taken_courses:
+                #print("COURSE ID IS: ", course_id)
+                if course_id in course_ids: 
+                    interactions.append((user["_id"], course_id))
+                    #print("INTERACTIONS ARE: ", interactions)
+    
+    
+    return interactions, user_ids, course_ids
+
+async def prepare_data(token : str):
+    interactions, user_ids, course_ids = await get_user_course_data(token)
+    
+    if not interactions:
+        raise ValueError("No interactions found.")
+
+    user_encoder = LabelEncoder()
+    course_encoder = LabelEncoder()
+
+    user_encoder.fit(user_ids)
+    course_encoder.fit(course_ids)
+
+    user_ids_encoded = user_encoder.transform([x[0] for x in interactions])
+    course_ids_encoded = course_encoder.transform([x[1] for x in interactions])
+
+    num_users = len(user_encoder.classes_)
+    num_courses = len(course_encoder.classes_)
+    interaction_matrix = np.zeros((num_users, num_courses))
+
+    for user, course in zip(user_ids_encoded, course_ids_encoded):
+        interaction_matrix[user, course] = 1
+    
+    print(f"Interaction matrix shape: {interaction_matrix.shape}")
+    print(interaction_matrix)
+    
+    return interaction_matrix, user_encoder, course_encoder
+
+def perform_svd(interaction_matrix, k=50):
+    num_users, num_courses = interaction_matrix.shape
+    k = min(k, num_users - 1, num_courses - 1)
+    if k <= 0:
+        raise ValueError("Invalid value for k. It must be greater than 0 and less than the minimum dimension of the matrix.")
+        
+    u, sigma, vt = svds(interaction_matrix, k=k)
+    sigma = np.diag(sigma)
+    predicted_ratings = np.dot(np.dot(u, sigma), vt)
+    return predicted_ratings
+
+def get_recommendations_for_user(user_id, predicted_ratings, user_encoder, course_encoder, num_recommendations=5):
+    user_idx = user_encoder.transform([user_id])[0]
+    user_ratings = predicted_ratings[user_idx]
+    
+    recommended_indices = np.argsort(user_ratings)[::-1]
+    recommended_courses = course_encoder.inverse_transform(recommended_indices)
+    
+    return recommended_courses[:num_recommendations]
+
+
+async def process_recommendation(token: HTTPAuthorizationCredentials):
+    try:
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+
+        user = await user_collection.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Retrieve degree program and term from the user entity
+        degree_program = user.get("degree_program")
+        admission_year = user.get("admission_year")
+
+        if not degree_program or not admission_year:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Degree program or admission year not found in user profile")
+
+        try:
+            interaction_matrix, user_encoder, course_encoder = await prepare_data(token)
+        except ValueError as e:
+            return {"recommendations": [], "success": False, "message": str(e)}
+
+        if interaction_matrix.size == 0:
+            return {"recommendations": [], "success": True}
+        
+        predicted_ratings = perform_svd(interaction_matrix)
+        recommendations = get_recommendations_for_user(user["_id"], predicted_ratings, user_encoder, course_encoder)
+        taken_courses = set(user.get("required_courses", []) + 
+                            user.get("science_courses", []) + 
+                            user.get("university_courses", []) +
+                            user.get("area_courses", []) + 
+                            user.get("free_courses", []) + 
+                            user.get("core_courses", []))
+
+        
+        # Convert recommendations to a JSON-serializable format
+        previous_recommendations = set(rec["course_code"] for rec in user.get("recommendations", []))
+
+        filtered_recommendations = [course_id for course_id in recommendations 
+                                    if course_id not in taken_courses and course_id not in previous_recommendations]
+
+        return {"recommendations": filtered_recommendations, "success": True}
+
+
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})

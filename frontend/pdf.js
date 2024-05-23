@@ -166,4 +166,32 @@ function extractInfo(info){
     } else {
         console.log("Admit year not found");
     }
+
+    const extractedCourses = extractCourses(info);
+    console.log(extractedCourses);
+}
+
+function extractCourses(info) {
+    // Define a regular expression to match course names and codes
+    const courseRegex = /(CIP|HIST|IF|MATH|NS|PROJ|SPS|TLL|AL|CS|ECON|HUM|PSY|MAT|ORG|ENS|MGMT|CHEM|CULT|ENRG|FIN|GEN|HART|IE|LAW|LIT|ME|MFG|MKTG|OPIM|PHIL|PHYS|POLS|PSIR)\s+(\d{3,})/g;
+
+    // Array to store extracted courses
+    const courses = [];
+
+    // Iterate over matches found in the text
+    let match;
+    while ((match = courseRegex.exec(info)) !== null) {
+        // Extract course name and code
+        const courseName = match[1];
+        const courseCode = match[2];
+
+        // Concatenate course name and code
+        const course = courseName + courseCode;
+
+        // Add course to the array
+        courses.push(course);
+    }
+
+    // Return the extracted courses
+    return courses;
 }

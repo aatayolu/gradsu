@@ -3,4 +3,4 @@
 2-)after each recommendation, the recommendations response field of the user/getAll endpoint should be updated to that set of courses.
 with this way, we will be able to keep track of the latest recommendations and it will be easier to manage page changes and login/logoffs
 
-3-)there might be a problem with recommendation/course endpoint. it recommends to many courses to 8th semester senior student.  
+3-)there might be a problem with recommendation/course endpoint. it recommends to many courses to 8th semester senior student.  DONE

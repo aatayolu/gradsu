@@ -1,6 +1,6 @@
 from ..models.model import Course
 from ..models.model import CourseRecommendation
-from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData, CourseAdd
+from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData, CourseAdd, DeleteUser
 from typing import List  # Import List from the typing module
 from fastapi import APIRouter
 from ..config.database import cs_2018_fall
@@ -312,7 +312,7 @@ async def update_password(data: ChangePassword, current_user: UserInDB = Depends
                 "success": False}
 
 
-async def delete_user(token: HTTPAuthorizationCredentials):
+async def delete_user(userData : DeleteUser, token: HTTPAuthorizationCredentials):
     try:
         token_str = token.credentials  # Access the token string
         payload = jwt.decode(token_str, SECRET_KEY, algorithms=[ALGORITHM])
@@ -325,11 +325,23 @@ async def delete_user(token: HTTPAuthorizationCredentials):
             )
         user = await user_collection.find_one({"username": username})
         if user:
+            if not verify_password(userData.password, user["password"]):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
             await user_collection.delete_one({"username": username})
             return {"message": "User deleted successfully", "success": True}
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    except HTTPException as http_exc:
+        # Catching HTTPException to ensure custom message is set
+        return {"message": http_exc.detail, "success": False}
     except JWTError:
-        return {"message": "Invalid token", "success": False}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except Exception as e:
+        # Catching any other exception to return the message
         return {"message": str(e), "success": False}
 
 
@@ -396,35 +408,27 @@ async def fetch_recommend_courses(token: str):
         if pdf_info == False:
             return {"message": "Not enough student information found", "success": False}
         else:
-
             degree_program = user_info.degree_program
             admission_year = user_info.admission_year
             program_collection_name = f"{degree_program.upper()}-{admission_year}"
             program_collection = database.get_collection(program_collection_name)
             prev_recommendations = user_info.recommendations
             
-            # Function to check if two schedules overlap
             def check_schedule_overlap(schedule1, schedule2):
-                # Extract day and time ranges from the schedule strings
                 day1, *time_range1 = schedule1.split(" ")
                 day2, *time_range2 = schedule2.split(" ")
                 
-                # If the days are different, no overlap
                 if day1 != day2:
                     return False
                 
-                # Join any additional values in the time range strings
                 time_range1 = " ".join(time_range1)
                 time_range2 = " ".join(time_range2)
                 
-                # Parse time ranges
-                start_time1, end_time1 = map(lambda x: datetime.strptime(x, "%a %H:%M-%H:%M"), time_range1.split("-"))
-                start_time2, end_time2 = map(lambda x: datetime.strptime(x, "%a %H:%M-%H:%M"), time_range2.split("-"))
+                start_time1, end_time1 = map(lambda x: datetime.datetime.strptime(x, "%a %H:%M-%H:%M"), time_range1.split("-"))
+                start_time2, end_time2 = map(lambda x: datetime.datetime.strptime(x, "%a %H:%M-%H:%M"), time_range2.split("-"))
                 
-                # Check for overlap
                 return not (end_time1 <= start_time2 or end_time2 <= start_time1)
                         
-            # Function to check if a course is already taken by the user
             def course_already_taken(course_code, course_type):
                 if course_type == "required":
                     return course_code in user_info.required_courses
@@ -432,43 +436,30 @@ async def fetch_recommend_courses(token: str):
                     return course_code in user_info.area_courses
                 elif course_type == "core":
                     return course_code in user_info.core_courses
-                # Add more checks for other course types if needed
             
-            # Function to check if user satisfies prerequisites for a course
             async def user_satisfies_prerequisites(course_code, prerequisites):
                 for prerequisite in prerequisites:
-                    print("PREREQUISITE IS: ", prerequisite)
                     if prerequisite not in user_info.core_courses and prerequisite not in user_info.required_courses and prerequisite not in user_info.area_courses:
                         return False
                 return True
             
-            # Function to recommend courses
             async def recommend_courses():
                 recommended_courses = []
-                # Fetch all courses from the university collection
                 required_courses = await program_collection.find({"course_type": "required"}).to_list(length=None)
                 area_courses = await program_collection.find({"course_type": "area"}).to_list(length=None)
                 core_courses = await program_collection.find({"course_type": "core"}).to_list(length=None)
-                #university_courses = await program_collection.find({"course_type": "university"}).to_list(length=None)
 
                 course_types = {"required": required_courses, "area": area_courses, "core": core_courses}
 
                 for course_type, courses in course_types.items():
                     for course in courses:
-                        print(f"Course: {course}")  # Add this line to debug
-                            # Check if the course is not already taken
-                    # Check if the course is not already taken
                         if not course_already_taken(course["course_code"], course["course_type"]):
-                            # Check if the course is open in the current semester
                             if course["sections"]:
                                 lecture_found = False
                                 recitation_found = False
                                 for section in course["sections"]:
-                                    # Check if the section has times
-                                    
                                     if section["times"]:
-                                        schedule = section["times"][0][0]  # Considering only the first time slot
-                                        # Check if the schedule overlaps with any previous recommendations
+                                        schedule = section["times"][0][0]
                                         overlap = False
                                         for rec in prev_recommendations:
                                             for rec_course in rec:
@@ -478,44 +469,39 @@ async def fetch_recommend_courses(token: str):
                                             if overlap:
                                                 break
                                         if not overlap:
-                                            # Check if the user satisfies prerequisites for the course
                                             if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
                                                 if section["section"] and section["section"][-1].isdigit():
                                                     if section["section"][-1] == '0':
-                                                        # This is a lecture section
                                                         section_section = section["section"]
                                                         if not lecture_found:
-                                                            print("LECTURE IS: ", section["section"])
                                                             if section["section"]:
                                                                 recommended_courses.append([course["course_code"], schedule, course["course_type"]])
                                                                 lecture_found = True
 
                                                     else:
-                                                        # This is a recitation section
                                                         if not recitation_found:
                                                             section = course["course_code"] + " " + section["section"]
                                                             recommended_courses.append([section, schedule, "Recitation"])
-                                                            recitation_found = True  # Set recitation found to True after finding a recitation section
+                                                            recitation_found = True
                                                 else:
-                                                    # This handles sections without any digits which are also considered lectures
                                                     section_section = section["section"]
                                                     if not any(char.isdigit() for char in section_section):
-                                                        print("LECTURE IS: ", section["section"])
                                                         if not lecture_found:
-                                                            print("LECTURE IS: ", section["section"])
                                                             if section["section"]:
                                                                 recommended_courses.append([course["course_code"], schedule, course["course_type"]])
                                                                 lecture_found = True
-                            # else:  # If there are no sections at all, consider the course as a whole
-                            #     if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
-                            #         recommended_courses.append([course["course_code"], "", "Required"])  # No schedule for courses without sections
                 return recommended_courses
             
-            # Recommend courses
             recommendations = await recommend_courses()
             
-            # Return the recommendations
-            return {"recommendations": recommendations}
+            top_courses_response = await fetch_top_courses(token)
+            top_courses = {course["course_code"]: course["count"] for course in top_courses_response["top_courses"]}
+
+            sorted_recommendations = sorted(recommendations, key=lambda course: top_courses.get(course[0], 0), reverse=True)
+            
+            top_5_recommendations = sorted_recommendations[:5]
+            
+            return {"recommendations": top_5_recommendations}
         
     except JWTError:
         raise HTTPException(
@@ -523,7 +509,6 @@ async def fetch_recommend_courses(token: str):
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
 
 async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
     try:

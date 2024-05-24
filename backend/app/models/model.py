@@ -153,3 +153,7 @@ class SpecificRecom(BaseModel):
 class LoginData(User):
     password: str
     pdf_uploaded: bool
+
+
+class DeleteUser(BaseModel):
+    password: str

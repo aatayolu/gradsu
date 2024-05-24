@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .models.model import Course
 from .models.model import ScienceCourse
-from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd
+from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd, DeleteUser
 from typing import List  # Import List from the typing module
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -141,8 +141,8 @@ async def get_all_user_handler(token: HTTPAuthorizationCredentials = Depends(oau
         raise HTTPException(404, "No users found")
 
 @app.delete("/user/delete", tags=["User"])
-async def delete_user_handler(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
-    response = await delete_user(token)
+async def delete_user_handler(userData : DeleteUser, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    response = await delete_user(userData,token)
     if response:
         return response
     else:

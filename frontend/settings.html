@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="welcome" id="welcomeMessage">Welcome User</h1>
+        <h1 class="welcome" id="welcomeMessage" style="color: white;">Welcome User</h1>
         <p style="color: white;" onclick="goToDashboard()"> Return Home</p>
         <!-- Change Password Section -->
         <div class="change-password">
@@ -50,7 +50,8 @@
                 <input type="number" id="basic_science" name="basic_science" required>
                 <label for="university">University Courses:</label>
                 <input type="number" id="university" name="university" required>
-                <button type="button">Save Recommendations</button>
+                <button type="button" id="saveRecom" onclick="getSpesificRecoms()">Save Recommendations</button>
+                <button type="button" id="returnOrg" onclick="getRecommended()">Return to Original Recommendations</button>
             </form>
         </div>
     </div>

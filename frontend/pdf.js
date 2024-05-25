@@ -200,6 +200,7 @@ function extractCourses(info) {
         courses.push(course);
     }
 
+
     // Return the extracted courses
     return courses;
 }
@@ -241,7 +242,9 @@ async function submitUser() {
         const data = await response.json();
 
         if (data.success) {
+            
             window.location.href = 'dashboard.html'; // Redirect on success
+            
         } else {
             showToast(data.message || 'Upload failed. Please try again.');
         }
@@ -253,6 +256,36 @@ async function submitUser() {
         throw error; // Rethrow the error to be caught by the caller if needed
     } finally {
         spinnerOverlay.style.visibility = 'hidden'; // Hide spinner
+    }
+}
+
+
+async function getRecommended() {
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Authorization': `Bearer ${access_token}`
+        }
+    };
+
+    try {
+        const response = await fetch('http://95.214.177.119/recommend/course', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Response Data:', data);
+
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
     }
 }
 

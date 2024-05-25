@@ -77,3 +77,83 @@ function showToast(msg) {
 function goToDashboard(){
     window.location.href = 'dashboard.html';
 }
+
+async function getRecommended() {
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Authorization': `Bearer ${access_token}`
+        }
+    };
+
+    try {
+        const response = await fetch('http://95.214.177.119/recommend/course', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Response Data:', data);
+        showToast("Returned back to original recommendations!!");
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
+    }
+}
+
+
+async function getSpesificRecoms() {
+    var coreNum = parseInt(document.getElementById('core').value, 10) || 0;
+    var areaNum = parseInt(document.getElementById('area').value, 10) || 0;
+    var freeNum = parseInt(document.getElementById('free').value, 10) || 0;
+    var reqNum = parseInt(document.getElementById('required').value, 10) || 0;
+    var basicNum = parseInt(document.getElementById('basic_science').value, 10) || 0;
+    var uniNum = parseInt(document.getElementById('university').value, 10) || 0;
+
+    const requestBody = {
+        selected_courses: [], // Adjust this as needed if there are specific courses to add
+        core: coreNum,
+        area: areaNum,
+        free: freeNum,
+        required: reqNum,
+        basic_science: basicNum,
+        university: uniNum
+    };
+
+    const fetchOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Authorization': `Bearer ${access_token}`
+        },
+        body: JSON.stringify(requestBody)
+    };
+
+    try {
+        console.log('Request Body:', JSON.stringify(requestBody)); // Log the request body for debugging
+
+        const response = await fetch('http://95.214.177.119/recommend/specificCourse', fetchOptions);
+
+        if (!response.ok) {
+            const errorText = await response.text(); // Get the error response text
+            console.error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+            throw new Error(`HTTP error! Status: ${response.status} Response: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Response Data:', data);
+        showToast("Recommended as you wish!!");
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('An error occurred. Please try again.');
+        throw error; // Rethrow the error to be caught by the caller if needed
+    }
+}

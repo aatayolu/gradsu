@@ -242,8 +242,10 @@ async def add_prev_recoms(courses: AddPrevRecoom, token: str):
         {"$set": {"recommendations": []}}
     )
 
+    course_list = courses.courses
     # Add new recommendations
-    for course_info in courses:
+    for course_info in course_list:
+        print("course info is: ", course_info)
         course_code = course_info[0]
         course_time = course_info[1]
         course_type = course_info[2]
@@ -382,27 +384,28 @@ async def fetch_recommend_courses(token: str):
         pdf_info = user_info.pdf_uploaded
         print("user info is: ", user_info)
         
-        if pdf_info == False:
+        if not pdf_info:
             return {"message": "Not enough student information found", "success": False}
         else:
             degree_program = user_info.degree_program
             admission_year = user_info.admission_year
             program_collection_name = f"{degree_program.upper()}-{admission_year}"
             program_collection = database.get_collection(program_collection_name)
-            prev_recommendations = user_info.recommendations
             
             def check_schedule_overlap(schedule1, schedule2):
-                day1, *time_range1 = schedule1.split(" ")
-                day2, *time_range2 = schedule2.split(" ")
+                print("schedule 1 is: ", schedule1)
+                print("schedule 2 is: ", schedule2)
+                day1, *time_range1 = schedule1.split(" ", 2)
+                day2, *time_range2 = schedule2.split(" ", 2)
                 
                 if day1 != day2:
                     return False
                 
-                time_range1 = " ".join(time_range1)
-                time_range2 = " ".join(time_range2)
+                time_range1 = time_range1[0]
+                time_range2 = time_range2[0]
                 
-                start_time1, end_time1 = map(lambda x: datetime.datetime.strptime(x, "%a %H:%M-%H:%M"), time_range1.split("-"))
-                start_time2, end_time2 = map(lambda x: datetime.datetime.strptime(x, "%a %H:%M-%H:%M"), time_range2.split("-"))
+                start_time1, end_time1 = map(lambda x: datetime.strptime(x, "%H:%M"), time_range1.split("-"))
+                start_time2, end_time2 = map(lambda x: datetime.strptime(x, "%H:%M"), time_range2.split("-"))
                 
                 return not (end_time1 <= start_time2 or end_time2 <= start_time1)
                         
@@ -413,6 +416,7 @@ async def fetch_recommend_courses(token: str):
                     return course_code in user_info.area_courses
                 elif course_type == "core":
                     return course_code in user_info.core_courses
+                return False
             
             async def user_satisfies_prerequisites(course_code, prerequisites):
                 for prerequisite in prerequisites:
@@ -432,41 +436,33 @@ async def fetch_recommend_courses(token: str):
                     for course in courses:
                         if not course_already_taken(course["course_code"], course["course_type"]):
                             if course["sections"]:
-                                lecture_found = False
-                                recitation_found = False
                                 for section in course["sections"]:
                                     if section["times"]:
                                         schedule = section["times"][0][0]
                                         overlap = False
-                                        for rec in prev_recommendations:
-                                            for rec_course in rec:
-                                                if check_schedule_overlap(schedule, rec_course[1]):
-                                                    overlap = True
-                                                    break
-                                            if overlap:
+                                        for rec_course in recommended_courses:
+                                            if check_schedule_overlap(schedule, rec_course[1]):
+                                                overlap = True
                                                 break
                                         if not overlap:
                                             if await user_satisfies_prerequisites(course["course_code"], course["condition"]["prerequisite"]):
                                                 if section["section"] and section["section"][-1].isdigit():
                                                     if section["section"][-1] == '0':
                                                         section_section = section["section"]
-                                                        if not lecture_found:
-                                                            if section["section"]:
-                                                                recommended_courses.append([course["course_code"], schedule, course["course_type"]])
-                                                                lecture_found = True
-
+                                                        if not any(course["course_code"] == rec_course[0] for rec_course in recommended_courses):
+                                                            recommended_courses.append([course["course_code"], schedule, course["course_type"]])
+                                                            break
                                                     else:
-                                                        if not recitation_found:
-                                                            section = course["course_code"] + " " + section["section"]
-                                                            recommended_courses.append([section, schedule, "Recitation"])
-                                                            recitation_found = True
+                                                        section_code = course["course_code"] + " " + section["section"]
+                                                        if not any(section_code == rec_course[0] for rec_course in recommended_courses):
+                                                            recommended_courses.append([section_code, schedule, "Recitation"])
+                                                            break
                                                 else:
                                                     section_section = section["section"]
                                                     if not any(char.isdigit() for char in section_section):
-                                                        if not lecture_found:
-                                                            if section["section"]:
-                                                                recommended_courses.append([course["course_code"], schedule, course["course_type"]])
-                                                                lecture_found = True
+                                                        if not any(course["course_code"] == rec_course[0] for rec_course in recommended_courses):
+                                                            recommended_courses.append([course["course_code"], schedule, course["course_type"]])
+                                                            break
                 return recommended_courses
             
             recommendations = await recommend_courses()
@@ -477,8 +473,8 @@ async def fetch_recommend_courses(token: str):
             sorted_recommendations = sorted(recommendations, key=lambda course: top_courses.get(course[0], 0), reverse=True)
             
             top_5_recommendations = sorted_recommendations[:5]
-            #print("top 5 recommendations are: ", top_5_recommendations)
-            await add_prev_recoms(top_5_recommendations, token)
+            print("top 5 recommendations are: ", top_5_recommendations)
+            await add_prev_recoms(AddPrevRecoom(courses=top_5_recommendations), token)
             
             return {"recommendations": top_5_recommendations}
         
@@ -488,6 +484,9 @@ async def fetch_recommend_courses(token: str):
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+
 async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
     try:
         user_info = await get_current_user_details(token)
@@ -502,17 +501,16 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
         admission_year = user_info.admission_year
         program_collection_name = f"{degree_program.upper()}-{admission_year}"
         program_collection = database.get_collection(program_collection_name)
-        prev_recommendations = user_info.recommendations
         
         def check_schedule_overlap(schedule1, schedule2):
-            day1, *time_range1 = schedule1.split(" ")
-            day2, *time_range2 = schedule2.split(" ")
+            day1, *time_range1 = schedule1.split(" ", 2)
+            day2, *time_range2 = schedule2.split(" ", 2)
             
             if day1 != day2:
                 return False
             
-            time_range1 = " ".join(time_range1)
-            time_range2 = " ".join(time_range2)
+            time_range1 = time_range1[0]
+            time_range2 = time_range2[0]
             
             start_time1, end_time1 = map(lambda x: datetime.strptime(x, "%H:%M"), time_range1.split("-"))
             start_time2, end_time2 = map(lambda x: datetime.strptime(x, "%H:%M"), time_range2.split("-"))
@@ -520,7 +518,6 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             return not (end_time1 <= start_time2 or end_time2 <= start_time1)
                         
         def course_already_taken(course_code, course_type):
-           
             if course_type == "required":
                 return course_code in user_info.required_courses
             if course_type == "area":
@@ -528,7 +525,6 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             if course_type == "core":
                 return course_code in user_info.core_courses
             if course_type == "science_engineering":
-        
                 return course_code in user_info.science_courses
             if course_type == "university":
                 return course_code in user_info.university_courses
@@ -544,12 +540,9 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             return True
             
         async def recommend_courses(course_type, num_courses, recommended_courses):
-            #print("course type is: ", course_type)
             courses = await program_collection.find({"course_type": course_type}).to_list(length=None)
-            #print("courses are: ", courses)
             count = 0
             for course in courses:
-                print("course is: ", course)
                 if count >= num_courses:
                     break
                 
@@ -561,12 +554,9 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
                             if section["times"]:
                                 schedule = section["times"][0][0]
                                 overlap = False
-                                for rec in prev_recommendations:
-                                    for rec_course in rec:
-                                        if check_schedule_overlap(schedule, rec_course[1]):
-                                            overlap = True
-                                            break
-                                    if overlap:
+                                for rec_course in recommended_courses:
+                                    if check_schedule_overlap(schedule, rec_course[1]):
+                                        overlap = True
                                         break
                                 if not overlap:
                                     if await user_satisfies_prerequisites(course["condition"]["prerequisite"]):
@@ -587,7 +577,6 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
                                                     recommended_courses.append([course["course_code"], schedule, course["course_type"]])
                                                     lecture_found = True
                                                     count += 1
-            print("recommended courses are: ", recommended_courses)
             return recommended_courses
         
         recommended_courses = []
@@ -604,12 +593,9 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
                                 if section["times"]:
                                     schedule = section["times"][0][0]
                                     overlap = False
-                                    for rec in prev_recommendations:
-                                        for rec_course in rec:
-                                            if check_schedule_overlap(schedule, rec_course[1]):
-                                                overlap = True
-                                                break
-                                        if overlap:
+                                    for rec_course in recommended_courses:
+                                        if check_schedule_overlap(schedule, rec_course[1]):
+                                            overlap = True
                                             break
                                     if not overlap:
                                         if section["section"] and section["section"][-1].isdigit():
@@ -638,10 +624,8 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
         if course.free:
             recommended_courses = await recommend_courses("free", course.free, recommended_courses)
 
-    
-        await add_prev_recoms(recommended_courses, token)
+        await add_prev_recoms(AddPrevRecoom(courses=recommended_courses), token)
         
-
         return {"recommendations": recommended_courses}
         
     except JWTError:

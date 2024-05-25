@@ -233,57 +233,34 @@ def insert_space(course_code):
 
 async def add_prev_recoms(courses: AddPrevRecoom, token: str):
     current_user = await get_current_user(token)
-    user_collection = database.get_collection("user")  # Assuming user_collection is obtained from somewhere
-    #print("current user is: ", current_user)
-    
-    for course_list in courses.courses:  # Iterate over each list of courses
-        for course_info_str in course_list:  # Iterate over each course info string in the list
-            section = "0"  # Initialize section variable before processing each course
-            
-            course_info_str = course_info_str.strip()  # Extract the course info string
-            #print("course info str is: ", course_info_str)
-            words = course_info_str.split()
-            third_word = words[2]
-            print("third word is: ", third_word)
-            
-            
-            # Check if there's a day immediately after the space after the course code
-            course_code_end = course_info_str.find(" ", course_info_str.find(" ") + 1)
-            #print("course code end is: ", course_code_end)
-            next_word = course_info_str[course_info_str.rfind(" ") + 1: course_code_end]
-            #print("next word is: ", next_word)
-            
-            if third_word in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]:
-                # If the next word is a day, assume it's part of the course time, not the section
-                time_start = words[2]
-                index_first_letter = course_info_str.find(time_start)
-                course_code = course_info_str[:course_code_end].strip().upper()
-                course_time = course_info_str[index_first_letter:].strip()
-                section = "0"  # No section provided
-            else:
-                # If the next word is not a day, assume it's the section information
-                print("inside else")
-                time_start = words[3]
-                index_first_letter = course_info_str.find(time_start)
-                print("time start is: ", time_start)
-                print("index of first: ", index_first_letter)
-                course_code = course_info_str[:course_code_end].strip().upper()
-                course_time = course_info_str[index_first_letter:].strip()
-                section = third_word
-            
-            # print("course code is: ", course_code)
-            # print("course time is: ", course_time)
-            # print("section is: ", section)
-            
-            total_info = {"course_code": course_code, "course_time": course_time, "section": section}
-            await user_collection.update_one(
-                {"username": current_user.username},
-                {"$addToSet": {"recommendations": total_info}}
-            )
+    user_collection = database.get_collection("user")
+    print("current user is: ", current_user)
+
+    # Clear the existing recommendations
+    await user_collection.update_one(
+        {"username": current_user.username},
+        {"$set": {"recommendations": []}}
+    )
+
+    # Add new recommendations
+    for course_info in courses:
+        course_code = course_info[0]
+        course_time = course_info[1]
+        course_type = course_info[2]
+        total_info ={
+            "course_code": course_code,
+            "course_time": course_time,
+            "course_type": course_type
+        }
+
+        await user_collection.update_one(
+            {"username": current_user.username},
+            {"$addToSet": {"recommendations": total_info}}
+        )
 
     updated_user = await get_user(current_user.username, user_collection)
-    #print("updated user is: ", updated_user)
-    
+    print("updated user is: ", updated_user)
+
     if updated_user:
         return {"message": "Recommendations info updated successfully", "success": True}
     else:
@@ -500,6 +477,8 @@ async def fetch_recommend_courses(token: str):
             sorted_recommendations = sorted(recommendations, key=lambda course: top_courses.get(course[0], 0), reverse=True)
             
             top_5_recommendations = sorted_recommendations[:5]
+            #print("top 5 recommendations are: ", top_5_recommendations)
+            await add_prev_recoms(top_5_recommendations, token)
             
             return {"recommendations": top_5_recommendations}
         
@@ -509,7 +488,6 @@ async def fetch_recommend_courses(token: str):
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
 async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
     try:
         user_info = await get_current_user_details(token)
@@ -542,24 +520,36 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             return not (end_time1 <= start_time2 or end_time2 <= start_time1)
                         
         def course_already_taken(course_code, course_type):
+           
             if course_type == "required":
                 return course_code in user_info.required_courses
-            elif course_type == "area":
+            if course_type == "area":
                 return course_code in user_info.area_courses
-            elif course_type == "core":
+            if course_type == "core":
                 return course_code in user_info.core_courses
+            if course_type == "science_engineering":
+        
+                return course_code in user_info.science_courses
+            if course_type == "university":
+                return course_code in user_info.university_courses
+            if course_type == "free":
+                return course_code in user_info.free_courses
+            
             return False
             
         async def user_satisfies_prerequisites(prerequisites):
             for prerequisite in prerequisites:
-                if prerequisite not in user_info.core_courses and prerequisite not in user_info.required_courses and prerequisite not in user_info.area_courses:
+                if prerequisite not in user_info.core_courses and prerequisite not in user_info.required_courses and prerequisite not in user_info.area_courses and prerequisite not in user_info.science_courses and prerequisite not in user_info.university_courses and prerequisite not in user_info.free_courses:
                     return False
             return True
             
         async def recommend_courses(course_type, num_courses, recommended_courses):
+            #print("course type is: ", course_type)
             courses = await program_collection.find({"course_type": course_type}).to_list(length=None)
+            #print("courses are: ", courses)
             count = 0
             for course in courses:
+                print("course is: ", course)
                 if count >= num_courses:
                     break
                 
@@ -597,6 +587,7 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
                                                     recommended_courses.append([course["course_code"], schedule, course["course_type"]])
                                                     lecture_found = True
                                                     count += 1
+            print("recommended courses are: ", recommended_courses)
             return recommended_courses
         
         recommended_courses = []
@@ -634,14 +625,23 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
                                             section_code = course_data["course_code"] + " " + section["section"]
                                             recommended_courses.append([section_code, schedule, "Recitation"])
                                             recitation_found = True
+        if course.required:
+            recommended_courses = await recommend_courses("required", course.required, recommended_courses)
+        if course.area:
+            recommended_courses = await recommend_courses("area", course.area, recommended_courses)
+        if course.core:
+            recommended_courses = await recommend_courses("core", course.core, recommended_courses)
+        if course.basic_science:
+            recommended_courses = await recommend_courses("science_engineering", course.basic_science, recommended_courses)
+        if course.university:
+            recommended_courses = await recommend_courses("university", course.university, recommended_courses)
+        if course.free:
+            recommended_courses = await recommend_courses("free", course.free, recommended_courses)
+
+    
+        await add_prev_recoms(recommended_courses, token)
         
-        recommended_courses = await recommend_courses("core", course.core, recommended_courses)
-        recommended_courses = await recommend_courses("area", course.area, recommended_courses)
-        recommended_courses = await recommend_courses("required", course.required, recommended_courses)
-        recommended_courses = await recommend_courses("basic_science", course.basic_science, recommended_courses)
-        recommended_courses = await recommend_courses("university", course.university, recommended_courses)
-        recommended_courses = await recommend_courses("free", course.free, recommended_courses)
-        
+
         return {"recommendations": recommended_courses}
         
     except JWTError:
@@ -650,8 +650,6 @@ async def fetch_recommend_specific_courses(course: SpecificRecom, token: str):
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-
  # BELOW CODE IS FOR CONTENT COLLABRATIVE FILTERING RECOMMENDATION
 async def get_user_course_data(token: str):
     users_cursor = user_collection.find()

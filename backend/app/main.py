@@ -124,13 +124,13 @@ async def get_course_recommendation(token: HTTPAuthorizationCredentials = Depend
         raise HTTPException(404, "No courses found")
 
 
-@app.post("/course/addRecommended", tags=["Course"]) 
-async def add_course(courses: AddPrevRecoom, token: Annotated[str, Depends(oauth2_scheme)]):
-    response = await add_prev_recoms(courses, token)
-    if response:
-        return response
-    else:
-        raise HTTPException(404, "Cannot add course")
+# @app.post("/course/addRecommended", tags=["Course"]) 
+# async def add_course(courses: AddPrevRecoom, token: Annotated[str, Depends(oauth2_scheme)]):
+#     response = await add_prev_recoms(courses, token)
+#     if response:
+#         return response
+#     else:
+#         raise HTTPException(404, "Cannot add course")
 
 @app.post("/user/getAll", response_model=UserGetAllResponse, tags=["User"], summary="Get all user info")
 async def get_all_user_handler(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):

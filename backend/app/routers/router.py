@@ -783,10 +783,12 @@ async def process_recommendation(token: HTTPAuthorizationCredentials):
         # Convert recommendations to a JSON-serializable format
         previous_recommendations = set(rec["course_code"] for rec in user.get("recommendations", []))
 
-        filtered_recommendations = [course_id for course_id in recommendations 
-                                    if course_id not in taken_courses and course_id not in previous_recommendations]
 
-        return {"recommendations": filtered_recommendations, "success": True}
+        #TO APPLY FILTERING COMMENT OUT THE BELOW CODE 
+        # filtered_recommendations = [course_id for course_id in recommendations 
+        #                             if course_id not in taken_courses and course_id not in previous_recommendations]
+
+        return {"recommendations": recommendations, "success": True}
 
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token", headers={"WWW-Authenticate": "Bearer"})

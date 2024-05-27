@@ -163,3 +163,7 @@ class ForgotPassword(BaseModel):
 
 class VerifyCodeRequest(BaseModel):
     verification_code: str
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(min_length=4)
+    new_password_repeat: str = Field(min_length=4)

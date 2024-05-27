@@ -189,6 +189,16 @@ async def send_verification_email(email: str, verification_code: str):
         raise e
     
 
+async def update_user_password(user_collection, email: str, new_password: str):
+    hashed_password = get_hashed_password(new_password)
+    result = await user_collection.update_one(
+        {"email": email},
+        {"$set": {"password": hashed_password}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    
 # Function to authenticate user
 async def authenticate_user(username: str, password: str, user_collection):
     user = await get_user_for_login(username, user_collection)

@@ -7,7 +7,7 @@ client = motor.motor_asyncio.AsyncIOMotorClient('mongodb+srv://zeynepkrtls01:ZRA
 database = client.get_database("SuGrad")
 from .models.model import Course
 from .models.model import ScienceCourse
-from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd, DeleteUser, ForgotPassword, VerifyCodeRequest
+from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd, DeleteUser, ForgotPassword, VerifyCodeRequest, ResetPasswordRequest
 from starlette.background import BackgroundTasks
 from fastapi.responses import JSONResponse  # Correct import for JSONResponse
 from typing import List  # Import List from the typing module
@@ -57,6 +57,7 @@ from .routers.router import(
     send_verification_email,
     generate_verification_code,
     get_user_info_by_email,
+    update_user_password
     
 )
 user_collection = database.get_collection("user")
@@ -70,14 +71,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 ) 
-#rara
-#an example of a route
-# @app.get("/")
-# def read_root():
-#      return {"Hello": "World"}
-# @app.get("/items/")
-# async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
-#     return {"token": token}
+
+
+# In-memory store for reset tokens (use a database in production)
+reset_tokens = {}
 
 @app.post("/user/login", tags=["User"])
 async def login_for_access_token(user_data: UserLogin):
@@ -146,8 +143,7 @@ async def forget_password(
 
 
 
-# In-memory store for reset tokens (use a database in production)
-reset_tokens = {}
+
 
 
 @app.post("/user/verifyCode", tags=["User"])
@@ -173,6 +169,48 @@ async def verify_code(request: VerifyCodeRequest):
         content={"message": "Verification code is valid", "success": True}
     )
     
+
+
+@app.post("/user/resetPassword", tags=["User"])
+async def reset_password(request: ResetPasswordRequest):
+    #verification_code = request.verification_code
+    new_password = request.new_password
+    new_password_repeat = request.new_password_repeat
+
+    if new_password != new_password_repeat:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match"
+        )
+    print("reset_tokens:", reset_tokens)  # Debugging statement
+    # Search for the email associated with the verification code
+    # Find the email that has been verified
+    email = None
+    for key, value in reset_tokens.items():
+        if value.get('verified'):
+            email = key
+            break
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code has not been validated"
+        )
+
+    new_password = request.new_password
+
+    # Update the user's password
+    try:
+        await update_user_password(user_collection, email, new_password)
+        # Optionally, remove the verification code after successful password reset
+        del reset_tokens[email]
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Password has been reset successfully", "success": True}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 
 @app.post("/user/addInfo", tags=["User"])

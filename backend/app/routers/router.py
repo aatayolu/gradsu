@@ -17,7 +17,7 @@ import re
 import random
 import string
 import logging
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from collections import Counter
 import numpy as np
 from jose import JWTError, jwt

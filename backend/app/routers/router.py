@@ -173,8 +173,8 @@ async def send_verification_email(email: str, verification_code: str):
         MAIL_FROM=("sugradproject@hotmail.com"),
         MAIL_PORT=587,
         MAIL_SERVER=("smtp-mail.outlook.com"),
-        MAIL_STARTTLS = 'True',
-        MAIL_SSL_TLS= 'False',
+        MAIL_SSL = 'True',
+        MAIL_TLS= 'False',
         USE_CREDENTIALS= 'True',
         VALIDATE_CERTS= 'True',
 
@@ -198,7 +198,7 @@ async def update_user_password(user_collection, email: str, new_password: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    
+
 # Function to authenticate user
 async def authenticate_user(username: str, password: str, user_collection):
     user = await get_user_for_login(username, user_collection)

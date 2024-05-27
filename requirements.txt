@@ -16,4 +16,4 @@ python-dotenv==0.19.2
 fastapi_mail==1.4.1
 python-jose==3.3.0
 sqlalchemy==1.4.31
-starlette=
+starlette

@@ -198,12 +198,13 @@ async def reset_password(request: ResetPasswordRequest):
         )
 
     new_password = request.new_password
-
+    print("reset_tokens:", reset_tokens)  # Debugging statement
     # Update the user's password
     try:
         await update_user_password(user_collection, email, new_password)
         # Optionally, remove the verification code after successful password reset
         del reset_tokens[email]
+        print("reset_tokens:", reset_tokens)  # Debugging statement
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={"message": "Password has been reset successfully", "success": True}

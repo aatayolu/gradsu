@@ -157,3 +157,9 @@ class LoginData(User):
 
 class DeleteUser(BaseModel):
     password: str
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+class VerifyCodeRequest(BaseModel):
+    verification_code: str

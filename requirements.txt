@@ -1,7 +1,7 @@
 fastapi==0.65.1
 uvicorn==0.15.0
 motor
-bcrypt==3.2.0
+bcrypt
 numpy
 scikit-learn
 pandas
@@ -10,3 +10,10 @@ email-validator==1.1.3
 pymongo==4.7.2
 passlib==1.7.4
 python-jose==3.3.0
+fastapi-mail 
+jose
+python-dotenv
+motor 
+python-multipart
+sqlalchemy
+starlette

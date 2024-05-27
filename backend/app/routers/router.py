@@ -1,6 +1,6 @@
 from ..models.model import Course
 from ..models.model import CourseRecommendation
-from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData, CourseAdd, DeleteUser
+from ..models.model import ScienceCourse, UserRegistration, User, UserInDB, ChangePassword, UserAddInfo, UserDetails, AddPrevRecoom, UserGetAllResponse, SpecificRecom, LoginData, CourseAdd, DeleteUser, ForgotPassword, VerifyCodeRequest
 from typing import List  # Import List from the typing module
 from fastapi import APIRouter
 from ..config.database import cs_2018_fall
@@ -14,6 +14,10 @@ from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta
 from fastapi import Body
 import re
+import random
+import string
+import logging
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from collections import Counter
 import numpy as np
 from jose import JWTError, jwt
@@ -22,6 +26,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import LabelEncoder
 from scipy.sparse.linalg import svds
 SECRET_KEY = "83daa0256a2289b0fb23693bf1f6034d44396675749244721a2b20e896e1662"
+FORGET_PWD_SECRET_KEY = "qgBSpJZGjcURZLmhq8FzQv9Yw9jYyQ6L9c-Ut5w7Fbc"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -69,6 +74,12 @@ async def register_user(user_data: UserRegistration):
             "success": True}
 
 
+def create_reset_password_token(email: str):
+    data = {"sub": email, "exp": datetime.utcnow() + timedelta(minutes=10)}
+    token = jwt.encode(data, FORGET_PWD_SECRET_KEY, ALGORITHM)
+    return token
+
+
 # Function to verify password
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -113,7 +124,70 @@ async def get_user_info(username: str) -> UserInDB:
         detail=f"User with username '{username}' not found",
     )
 
+async def get_user_info_by_email(user_collection, request: ForgotPassword) -> UserInDB:
+    try:
+        user = await user_collection.find_one({"email": request.email})
+        print("user is: ", user)
+        if user:
+            print("user is: ", user)
+            return UserInDB(**user)
+    except Exception as e:
+        # Handle exceptions such as database errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user information",
+        )
 
+    # If the user does not exist, raise HTTPException
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"User with email '{request.email}' not found",
+    )
+
+
+def generate_verification_code(email: str,length=6):
+    """Generates a random verification code."""
+    verif_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+    token = jwt.encode({"email": email, "code": verif_code, "exp": datetime.utcnow() + timedelta(minutes=10)}, FORGET_PWD_SECRET_KEY, algorithm=ALGORITHM)
+    return verif_code
+
+
+
+
+async def send_verification_email(email: str, verification_code: str):
+    logger = logging.getLogger(__name__)
+    """Sends a verification email with the given code."""
+    subject = "Your Password Reset Verification Code"
+    body = f"Your password reset verification code is: {verification_code}"
+    
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        body=body,
+        subtype=MessageType.plain
+    )
+
+    mail_conf = ConnectionConfig(
+        MAIL_USERNAME=("sugradproject@hotmail.com"),
+        MAIL_PASSWORD=("denemege316931"),
+        MAIL_FROM=("sugradproject@hotmail.com"),
+        MAIL_PORT=587,
+        MAIL_SERVER=("smtp-mail.outlook.com"),
+        MAIL_STARTTLS = 'True',
+        MAIL_SSL_TLS= 'False',
+        USE_CREDENTIALS= 'True',
+        VALIDATE_CERTS= 'True',
+
+    )
+
+    fm = FastMail(mail_conf)
+    try:
+        await fm.send_message(message)
+        logger.info(f"Verification email sent to {email}")
+    except Exception as e:
+        logger.error(f"Failed to send email to {email}: {e}")
+        raise e
+    
 
 # Function to authenticate user
 async def authenticate_user(username: str, password: str, user_collection):

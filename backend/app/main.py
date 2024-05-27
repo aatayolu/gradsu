@@ -1,8 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import motor.motor_asyncio
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+client = motor.motor_asyncio.AsyncIOMotorClient('mongodb+srv://zeynepkrtls01:ZRAZ2x5rw9AXMllc@sugradcluster.aro7tnh.mongodb.net/')
+database = client.get_database("SuGrad")
 from .models.model import Course
 from .models.model import ScienceCourse
-from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd, DeleteUser
+from .models.model import CourseRecommendation, UserRegistration, UserLogin, ChangePassword, UserInDB, UserAddInfo, AddPrevRecoom, UserGetAllResponse, SpecificRecom, CourseAdd, DeleteUser, ForgotPassword, VerifyCodeRequest
+from starlette.background import BackgroundTasks
+from fastapi.responses import JSONResponse  # Correct import for JSONResponse
 from typing import List  # Import List from the typing module
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -46,10 +53,13 @@ from .routers.router import(
     process_content_recommendation,
     fetch_top_courses,
     add_course_info_user,
-    fetch_least_courses
-
+    fetch_least_courses,
+    send_verification_email,
+    generate_verification_code,
+    get_user_info_by_email,
     
 )
+user_collection = database.get_collection("user")
 #to allow frontend to access the backend
 origins = ['https://localhost:3000']
 
@@ -104,6 +114,65 @@ async def change_password(user_data: ChangePassword, current_user: UserInDB = De
         new_hashed_password = get_password_hash(change_data.new_password)
         await update_password(user.username, new_hashed_password, user_collection)
         return {"message": "Password updated successfully"}
+
+@app.post("/user/sendVerification", tags=["User"])
+async def forget_password(
+    background_tasks: BackgroundTasks,
+    fpr: ForgotPassword,
+):
+    try:
+        user = await get_user_info_by_email(user_collection, fpr)
+        print("user", user.email )
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid Email address")
+        
+        verification_code = generate_verification_code(fpr.email)
+        
+        # Save the verification code and its expiration in the database or in-memory store (for simplicity, using a dict here)
+        reset_tokens[fpr.email] = {
+            "code": verification_code,
+            "expires": datetime.utcnow() + timedelta(minutes=10)
+        }
+
+        # Send the email with the verification code
+        background_tasks.add_task(send_verification_email, fpr.email, verification_code)
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Verification code has been sent to your email", "success": True}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e.detail)
+
+
+
+# In-memory store for reset tokens (use a database in production)
+reset_tokens = {}
+
+
+@app.post("/user/verifyCode", tags=["User"])
+async def verify_code(request: VerifyCodeRequest):
+    verification_code = request.verification_code
+
+    # Search for the email associated with the verification code
+    email = None
+    print("email", reset_tokens.items())
+    for key, value in reset_tokens.items():
+        if value["code"] == verification_code and value["expires"] > datetime.utcnow():
+            email = key
+            break
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification code"
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "Verification code is valid", "success": True}
+    )
+    
 
 
 @app.post("/user/addInfo", tags=["User"])

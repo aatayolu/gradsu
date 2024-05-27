@@ -13,7 +13,7 @@ python-jose==3.3.0
 pydantic==1.8.2
 motor==2.4.0
 python-dotenv==0.19.2
-fastapi-mail==1.4.1
+fastapi_mail==1.4.1
 jose==3.2.0
 sqlalchemy==1.4.31
 starlette==0.17.1

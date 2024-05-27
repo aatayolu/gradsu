@@ -11,9 +11,8 @@ pymongo==4.7.2
 passlib==1.7.4
 python-jose==3.3.0
 pydantic==1.8.2
-motor==2.4.0
-python-dotenv==0.19.2
+motor
+python-dotenv
 fastapi_mail==1.4.1
-python-jose==3.3.0
-sqlalchemy==1.4.31
+sqlalchemy
 starlette

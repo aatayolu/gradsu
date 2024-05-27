@@ -164,7 +164,7 @@ async def send_verification_email(email: str, verification_code: str):
         subject=subject,
         recipients=[email],
         body=body,
-        subtype=MessageType.plain
+        subtype="plain"
     )
 
     mail_conf = ConnectionConfig(

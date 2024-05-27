@@ -128,7 +128,8 @@ async def forget_password(
         # Save the verification code and its expiration in the database or in-memory store (for simplicity, using a dict here)
         reset_tokens[fpr.email] = {
             "code": verification_code,
-            "expires": datetime.utcnow() + timedelta(minutes=10)
+            "expires": datetime.utcnow() + timedelta(minutes=10),
+            "verified": False
         }
 
         # Send the email with the verification code
@@ -163,6 +164,8 @@ async def verify_code(request: VerifyCodeRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired verification code"
         )
+    
+    reset_tokens[email]['verified'] = True
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,

@@ -173,7 +173,7 @@ async def send_verification_email(email: str, verification_code: str):
         MAIL_FROM=("sugradproject@hotmail.com"),
         MAIL_PORT=587,
         MAIL_SERVER=("smtp-mail.outlook.com"),
-        MAIL_SSL = 'True',
+        MAIL_SSL = 'False',
         MAIL_TLS= 'True',
         USE_CREDENTIALS= 'True',
         VALIDATE_CERTS= 'True',

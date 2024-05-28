@@ -330,12 +330,14 @@ async def fetch_user_stats( token: str):
                         total_credits["area_credits"] = max(0,15 - total_credits["area_credits"])
                         total_credits["required_credits"] = max(0,18 - total_credits["required_credits"])
                         total_credits["core_credits"] = max(0,12- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
                     else:
                         
                         total_credits["free_credits"] = max(0,30 - total_credits["free_credits"] )
                         total_credits["area_credits"] = max(0,18 - total_credits["area_credits"])
                         total_credits["required_credits"] = max(0,18 - total_credits["required_credits"])
                         total_credits["core_credits"] = max(0,12- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
 
             elif degree_program == "MAN":
                         
@@ -343,6 +345,7 @@ async def fetch_user_stats( token: str):
                         total_credits["area_credits"] = max(0,24 - total_credits["area_credits"])
                         total_credits["required_credits"] = max(0,15 - total_credits["required_credits"])
                         total_credits["core_credits"] = max(0,18- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
 
             elif degree_program == "PSY":
                        
@@ -350,6 +353,7 @@ async def fetch_user_stats( token: str):
                         total_credits["area_credits"] = max(0,18 - total_credits["area_credits"])
                         total_credits["required_credits"] = max(0,18 - total_credits["required_credits"])
                         total_credits["core_credits"] = max(0,21- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
             
             elif degree_program == "VACD":
                         
@@ -357,6 +361,7 @@ async def fetch_user_stats( token: str):
                         total_credits["area_credits"] = max(0,18 - total_credits["area_credits"])
                         total_credits["required_credits"] = max(0,15 - total_credits["required_credits"])
                         total_credits["core_credits"] = max(0,27- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
             
 
             

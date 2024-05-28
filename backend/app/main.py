@@ -57,8 +57,8 @@ from .routers.router import(
     send_verification_email,
     generate_verification_code,
     get_user_info_by_email,
-    update_user_password
-    
+    update_user_password,
+    fetch_user_stats
 )
 user_collection = database.get_collection("user")
 #to allow frontend to access the backend
@@ -216,6 +216,14 @@ async def reset_password(request: ResetPasswordRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@app.post("/user/stats", tags=["User"])
+async def get_user_stats( token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+    response = await fetch_user_stats(token)
+    if response:
+        return response
+    else:
+        raise HTTPException(404, "Cannot get user stats")
+    
 
 @app.post("/user/addInfo", tags=["User"])
 async def add_user_info_route(user_info: UserAddInfo, token: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):

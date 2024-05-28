@@ -24,6 +24,7 @@ from jose import JWTError, jwt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import LabelEncoder
+from fastapi.responses import JSONResponse
 from scipy.sparse.linalg import svds
 SECRET_KEY = "83daa0256a2289b0fb23693bf1f6034d44396675749244721a2b20e896e1662"
 FORGET_PWD_SECRET_KEY = "qgBSpJZGjcURZLmhq8FzQv9Yw9jYyQ6L9c-Ut5w7Fbc"
@@ -197,7 +198,186 @@ async def update_user_password(user_collection, email: str, new_password: str):
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
+
+
+
+
+async def fetch_user_stats( token: str):
+    try:
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        user = await get_current_user_details(token)
+        if user:
+            degree_program = user.degree_program
+            admission_year = user.admission_year
+            if degree_program == "CS" or degree_program == "EE" or degree_program == "MS" or degree_program == "ME" or  degree_program == "BIO" or degree_program == "MAT":
+                course_types = {
+                    "area": user.area_courses,
+                    "free": user.free_courses,
+                    "required": user.required_courses,
+                    "core": user.core_courses,
+                    
+                    "basic_science": user.science_courses
+                }
+            else:
+                course_types = {
+                    "area": user.area_courses,
+                    "free": user.free_courses,
+                    "required": user.required_courses,
+                    "core": user.core_courses,
+                   
+                }
+
+
+            total_credits = {f"{course_type}_credits": 0 for course_type in course_types}
+
+            program_collection_name = f"{user.degree_program.upper()}-{user.admission_year}"
+            program_collection = database.get_collection(program_collection_name)
+
+            for course_type, courses in course_types.items():
+                if courses:
+                    for course_code in courses:
+                        course = await program_collection.find_one({"course_code": course_code})
+                        if course:
+                            if course_type == "basic_science":
+                                total_credits[f"{course_type}_credits"] += course.get("ects_credits", 0)
+                            else:
+                                total_credits[f"{course_type}_credits"] += course.get("su_credits", 0)
+            
+            if degree_program == "CS":
+                if admission_year == 201801 or admission_year == 201802 or admission_year == 201901 or admission_year == 201902 or admission_year == 202001 or admission_year == 202002:
+                    
+                    total_credits["free_credits"] = max(0,15 - total_credits["free_credits"])
+                    total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                    total_credits["required_credits"] = max(0,25 - total_credits["required_credits"])
+                    total_credits["core_credits"] = max(0,35 - total_credits["core_credits"])
+                    total_credits["basic_science_credits"] = max(0,60 - total_credits["basic_science_credits"])
+                else:
+                    
+                    total_credits["free_credits"] = max(0,15 - total_credits["free_credits"])
+                    total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                    total_credits["required_credits"] = max(0,29 - total_credits["required_credits"])
+                    total_credits["core_credits"] = max(0,31 - total_credits["core_credits"])
+                    total_credits["basic_science_credits"] =max(0,60 - total_credits["basic_science_credits"])
+            
+            elif degree_program == "MS":
+                   
+                    total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                    total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                    total_credits["required_credits"] = max(0,31 - total_credits["required_credits"])
+                    total_credits["core_credits"] = max(0,29 - total_credits["core_credits"])
+                    total_credits["basic_science_credits"] = max(0,60 - total_credits["basic_science_credits"])
+            
+            elif degree_program == "EE":
+                    
+                    total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                    total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                    total_credits["required_credits"] = max(0,29 - total_credits["required_credits"])
+                    total_credits["core_credits"] = max(0,31- total_credits["core_credits"])
+                    total_credits["basic_science_credits"] = max(0,60 - total_credits["basic_science_credits"])
+            
+            elif degree_program == "BIO":
+                    if admission_year == 201801 or admission_year == 201802 or admission_year == 201901 or admission_year == 201902:
+                        
+                        total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,21 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,39- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
+                    else:
+                        
+                        total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,33 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,29- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = 0
+
+            elif degree_program == "MAT":
+                    if admission_year == 201801 or admission_year == 201802:
+                        
+                        total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,23 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,37- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = max(0,60 - total_credits["basic_science_credits"])
+                    else:
+                        
+                        total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,26 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,34- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = max(0,60 - total_credits["basic_science_credits"])
+
+
+            elif degree_program == "ME":
+                        
+                        total_credits["free_credits"] = max(0,15 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,9 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,39 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,21- total_credits["core_credits"])
+                        total_credits["basic_science_credits"] = max(0,60 - total_credits["basic_science_credits"])
+
+            elif degree_program == "ECON":
+                    if admission_year == 201801 or admission_year == 201802:
+                        
+                        total_credits["free_credits"] = max(0,33 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,15 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,18 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,12- total_credits["core_credits"])
+                    else:
+                        
+                        total_credits["free_credits"] = max(0,30 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,18 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,18 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,12- total_credits["core_credits"])
+
+            elif degree_program == "MAN":
+                        
+                        total_credits["free_credits"] = max(0,26 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,24 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,15 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,18- total_credits["core_credits"])
+
+            elif degree_program == "PSY":
+                       
+                        total_credits["free_credits"] = max(0,21 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,18 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,18 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,21- total_credits["core_credits"])
+            
+            elif degree_program == "VACD":
+                        
+                        total_credits["free_credits"] = max(0,21 - total_credits["free_credits"] )
+                        total_credits["area_credits"] = max(0,18 - total_credits["area_credits"])
+                        total_credits["required_credits"] = max(0,15 - total_credits["required_credits"])
+                        total_credits["core_credits"] = max(0,27- total_credits["core_credits"])
+            
+
+            
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"total_credits": total_credits, "success": True}
+            )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
 
 # Function to authenticate user
 async def authenticate_user(username: str, password: str, user_collection):

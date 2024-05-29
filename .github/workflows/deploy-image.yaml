@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  FRONTEND_IMAGE_NAME: frontend-${{ github.repository }}  # Add this line
 
 jobs:
   build-and-push-image:
@@ -36,12 +37,21 @@ jobs:
             type=ref,event=branch
             type=sha
 
-      - name: Build and push Docker image
+      - name: Build and push Backend Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Build and push frontend Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./frontend  # Ensure your frontend Dockerfile is in the 'frontend' directory
+          file: ./frontend/Dockerfile  # Explicitly specify the Dockerfile path
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
 
       - name: Deploy to Server
         uses: appleboy/ssh-action@master
@@ -54,3 +64,7 @@ jobs:
             docker stop my-app || true
             docker rm my-app || true
             docker run -d --name my-app -p 80:80 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
+            docker stop frontend-app || true
+            docker rm frontend-app || true
+            docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest

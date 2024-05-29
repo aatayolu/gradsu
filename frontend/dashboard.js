@@ -31,7 +31,6 @@ function handleCourseTime(day, startTime, endTime, courseCode, color) {
         }
 
         const formattedTime = `${currentStartTime.replace(':', '')}---${nextEndTime.replace(':', '')}`;
-        console.log(day, formattedTime);
         addToCell(day, formattedTime, courseCode, color);
 
         currentStartTime = addHour(currentStartTime.split(':')[0] + ':40');
@@ -159,7 +158,7 @@ function setVars(userData) {
     major.style.color = "black";
     admissionYear.textContent = "Admission Year\n" + userData.admission_year.toString().slice(0, 4);
     admissionYear.style.color = "black";
-    username.textContent = userData.username;
+    username.textContent = "Welcome " + userData.username;
     username.style.color = "black";
 
     sessionStorage.setItem("username", userData.username.toString());
@@ -190,10 +189,17 @@ async function getRecommended() {
         const data = await response.json();
         console.log('Response Data:', data);
         console.log("original recommendations!!");
+        window.location.reload();
         return data;
     } catch (error) {
         console.error('Error:', error);
         showToast('An error occurred. Please try again.');
         throw error; // Rethrow the error to be caught by the caller if needed
     }
+}
+
+
+function logout(){
+      sessionStorage.clear();
+      window.location.href = 'index.html';
 }

@@ -8,7 +8,6 @@ body {
     background-size: cover; /* Cover the entire background */
     background-position: center; /* Center the background image */
     background-repeat: no-repeat; /* Prevent background image from repeating */
-    
 }
 
 .container {
@@ -17,9 +16,35 @@ body {
     text-align: center;
 }
 
+.header-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .welcome {
     font-size: 24px;
-    margin-bottom: 20px;
+    margin: 0 20px;
+}
+
+.important-message {
+    background-color: yellow;
+    color: black;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+    max-width: 200px;
+    visibility: hidden;
+}
+
+.left {
+    margin-right: auto;
+}
+
+.right {
+    margin-left: auto;
 }
 
 /* Change Password Section */

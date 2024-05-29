@@ -8,8 +8,12 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="welcome" id="welcomeMessage" style="color: white;">Welcome User</h1>
-        <p style="color: white;" onclick="goToDashboard()"> Return Home</p>
+        <div class="header-container">
+            <div class="important-message left" id="leftMessage">Left Important Message from Server</div>
+            <h1 class="welcome" id="welcomeMessage" style="color: white;">Welcome User</h1>
+            <div class="important-message right" id="rightMessage">Right Important Message from Server</div>
+        </div>
+        <p style="color: white;" onclick="goToDashboard()">Return Home</p>
         <!-- Change Password Section -->
         <div class="change-password">
             <h2>Change Password</h2>
@@ -30,7 +34,7 @@
             <form id="deleteAccountForm">
                 <label for="currentPasswordDelete">Current Password:</label>
                 <input type="password" id="currentPasswordDelete" name="currentPasswordDelete" required>
-                <button type="button" class="delete-button">Delete Account</button>
+                <button type="button" class="delete-button" onclick="deleteAccount()">Delete Account</button>
             </form>
         </div>
 
@@ -38,6 +42,8 @@
         <div class="specific-course">
             <h2>Specific Course Recommendation</h2>
             <form id="specificCourseForm">
+                <label for="courses">Specific Courses You Want (CS201, CS204)</label>
+                <input type="input" id="courses" name="courses" required>
                 <label for="core">Core Courses:</label>
                 <input type="number" id="core" name="core" required>
                 <label for="area">Area Courses:</label>
@@ -51,7 +57,6 @@
                 <label for="university">University Courses:</label>
                 <input type="number" id="university" name="university" required>
                 <button type="button" id="saveRecom" onclick="getSpesificRecoms()">Save Recommendations</button>
-                <button type="button" id="returnOrg" onclick="getRecommended()">Return to Original Recommendations</button>
             </form>
         </div>
     </div>

@@ -10,12 +10,13 @@
     <div class="container">
         <div class="sidebar">
             <h1 class="sidebar-header">SUGrad</h1>
-            <img src="shuffle.png" alt="Description of the image" class="sidebar-image" id="sidebarShuffle">
+            <img src="shuffle.png" alt="Description of the image" class="sidebar-image" id="sidebarShuffle" onclick="getRecommended()">
             <p id="username" >Username</p>
             <p id="major">Major</p>
             <p id="admYear" >Admission Year</p>
             <p id="bannerweb" onclick="openbanner()">bannerweb</p>
             <p id="settings" onclick="openSettings()">Settings</p>
+            <p id="logout" onclick="logout()" style="color: red;">Logout</p>
         </div>
         <div class="schedule">
             <div class="schedule-header">

@@ -31,7 +31,7 @@ jobs:
       - name: Build and push backend Docker image
         uses: docker/build-push-action@v3
         with:
-          context: .  # Assuming your backend Dockerfile is in the 'backend' directory
+          context: ./backend  # Ensure your backend Dockerfile is in the 'backend' directory
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
@@ -39,7 +39,7 @@ jobs:
       - name: Build and push frontend Docker image
         uses: docker/build-push-action@v3
         with:
-          context: . # Assuming your frontend Dockerfile is in the 'frontend' directory
+          context: ./frontend  # Ensure your frontend Dockerfile is in the 'frontend' directory
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest

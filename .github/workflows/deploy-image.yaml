@@ -58,4 +58,4 @@ jobs:
             docker rm backend-app || true
             docker rm frontend-app || true
             docker run -d --name backend-app -p 80:80 ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
-            docker run -d --name frontend-app -p 8080:80 ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
+            docker run -d --name frontend-app -p 8080:8080 ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest

@@ -32,6 +32,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./backend  # Ensure your backend Dockerfile is in the 'backend' directory
+          file: ./backend/Dockerfile  # Explicitly specify the Dockerfile path
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest
@@ -40,6 +41,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./frontend  # Ensure your frontend Dockerfile is in the 'frontend' directory
+          file: ./frontend/Dockerfile  # Explicitly specify the Dockerfile path
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest

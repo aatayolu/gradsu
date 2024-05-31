@@ -16,3 +16,5 @@ python-dotenv
 fastapi-mail
 sqlalchemy
 starlette
+pytest
+pytest-asyncio

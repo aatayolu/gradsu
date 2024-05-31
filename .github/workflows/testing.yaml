@@ -44,7 +44,6 @@ jobs:
       - name: Run tests
         env:
           MONGO_URI: mongodb://localhost:27017  # Set any environment variables if needed
-          PYTHONPATH: ./backend/app  # Set the PYTHONPATH to the backend/app directory
         run: |
           source venv/bin/activate
           pytest

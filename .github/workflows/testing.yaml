@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'  # Specify the Python version you are using
+          python-version: '3.8'
 
       - name: Install dependencies
         run: |
@@ -44,6 +44,7 @@ jobs:
       - name: Run tests
         env:
           MONGO_URI: mongodb://localhost:27017  # Set any environment variables if needed
+          PYTHONPATH: ./backend  # Set the PYTHONPATH to the backend directory
         run: |
           source venv/bin/activate
           pytest

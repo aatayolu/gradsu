@@ -18,3 +18,4 @@ sqlalchemy
 starlette
 pytest
 pytest-asyncio
+requests

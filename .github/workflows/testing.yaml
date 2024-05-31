@@ -32,6 +32,14 @@ jobs:
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
+        shell: bash
+
+      - name: Wait for MongoDB to be ready
+        run: |
+          while ! nc -z localhost 27017; do   
+            sleep 1
+          done
+        shell: bash
 
       - name: Run tests
         env:
@@ -39,3 +47,4 @@ jobs:
         run: |
           source venv/bin/activate
           pytest
+        shell: bash

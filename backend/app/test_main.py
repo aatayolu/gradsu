@@ -139,9 +139,9 @@ def test_add_course(register_test_user):
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
-    course_info = [
-        "CS201","CS303"
-    ]
+    course_info = {
+        "courses": ["CS201"]
+    }
     response = client.post("/user/addCourse", json=course_info, headers=headers)
     print(response.json())
     assert response.status_code == 200 or response.status_code == 404

@@ -134,25 +134,17 @@ def test_get_top_courses(register_test_user):
     print(response.json())
     assert response.status_code == 200 or response.status_code == 404
 
-# def test_add_course(register_test_user):
-#     global access_token
-#     headers = {
-#         "Authorization": f"Bearer {access_token}"
-#     }
-#     course_info = {
-#         "courses": [
-#             {
-#         "courses": "CS303",  # Corrected to match expected str type
-#         "admission_year": 2020,
-#         "degree_program": "Computer Science and Engineering",
-#         "double_major": "Industrial Engineering",
-#         "minor": "",
-#             }
-#         ]
-#     }
-#     response = client.post("/user/addCourse", json=course_info, headers=headers)
-#     print(response.json())
-#     assert response.status_code == 200 or response.status_code == 404
+def test_add_course(register_test_user):
+    global access_token
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    course_info = [
+        "CS201","CS303"
+    ]
+    response = client.post("/user/addCourse", json=course_info, headers=headers)
+    print(response.json())
+    assert response.status_code == 200 or response.status_code == 404
 
 
 def test_get_least_courses(register_test_user):
